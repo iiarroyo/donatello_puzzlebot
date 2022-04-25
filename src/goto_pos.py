@@ -1,13 +1,16 @@
 #!/usr/bin/env python 
 import rospy 
 import numpy as np
+from std_srvs.srv import Empty
 from std_msgs.msg import Float32
-from geometry_msgs.msg import Twist  
+from geometry_msgs.msg import Twist
 
 class RobotPose(): 
     def __init__(self): 
-        rospy.on_shutdown(self.cleanup) 
-
+        rospy.on_shutdown(self.cleanup)
+        # reset simulation every time
+        reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+        reset_simulation()
         ###########  CONSTANTS  ############## 
         r=0.05                 # wheel radius [m]
         L=0.18                 # wheel separation [m]
