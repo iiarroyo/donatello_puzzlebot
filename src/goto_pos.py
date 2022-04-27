@@ -11,6 +11,7 @@ class RobotPose():
         # reset simulation every time
         reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
         reset_simulation()
+
         ###########  CONSTANTS  ############## 
         r=0.05                 # wheel radius [m]
         L=0.18                 # wheel separation [m]
@@ -21,6 +22,7 @@ class RobotPose():
         self.cmd = Twist()     # robot vel
 
         K_v, K_w = 0.1, 1.5    # ctrl constants
+        x_t, y_t = 0, 0.8    # goal coords
         theta, x, y = 0, 0, 0  # inital values
         x_t, y_t = -1.0, 0.0    # goal coords
         if len(sys.argv) == 2:
@@ -60,11 +62,11 @@ class RobotPose():
             e_d = np.sqrt(pow(x_t - x, 2) + pow(y_t - y, 2))
 
             # p control
-            if(e_d > 0.2):
-                v_out = K_v * e_d
-                w_out = K_w * e_theta
-                if(w_out>1):
-                   w_out = 1
+            if(e_d > 0.2):          
+                    v_out = K_v * e_d
+                    v_out = min(0.5, v_out)
+                    w_out = K_w * e_theta
+                    w_out = min(2.7,w_out)
             else:
                 v_out = 0
                 w_out = 0
