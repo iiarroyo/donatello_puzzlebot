@@ -1,0 +1,8 @@
+prefix=/usr/local
+
+Name: puzzlebot_sim
+Description: Description of puzzlebot_sim
+Version: 0.0.1
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: std_msgs nav_msgs geometry_msgs sensor_msgs roscpp message_runtime

@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/iiarroyo/puzzlebot_ws/src/puzzlebot_examples/include/puzzlebot_examples/PIDController.hpp
+time.h
+-
+
+/home/iiarroyo/puzzlebot_ws/src/puzzlebot_examples/src/PIDController.cpp
+puzzlebot_examples/PIDController.hpp
+/home/iiarroyo/puzzlebot_ws/src/puzzlebot_examples/src/puzzlebot_examples/PIDController.hpp
+
