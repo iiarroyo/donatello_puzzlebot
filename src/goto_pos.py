@@ -1,5 +1,5 @@
 #!/usr/bin/env python 
-import rospy 
+import rospy, sys
 import numpy as np
 from std_srvs.srv import Empty
 from std_msgs.msg import Float32
@@ -24,7 +24,11 @@ class RobotPose():
         K_v, K_w = 0.1, 1.5    # ctrl constants
         x_t, y_t = 1, 1   # goal coords
         theta, x, y = 0, 0, 0  # inital values
-    
+        x_t, y_t = -1.0, 0.0    # goal coords
+        if len(sys.argv) == 2:
+            x_t = sys.argv[0]
+            y_t = sys.argv[1]
+            
         #########   INIT PUBLISHERS   #########
         ##  pub = rospy.Publisher('setPoint', UInt16MultiArray, queue_size=1) 
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1) 
@@ -92,5 +96,5 @@ class RobotPose():
 
 ############################### MAIN PROGRAM #################################### 
 if __name__ == "__main__": 
-    rospy.init_node("square", anonymous=True) 
-    RobotPose() 
+    rospy.init_node("Navigation node", anonymous=True) 
+    RobotPose()
