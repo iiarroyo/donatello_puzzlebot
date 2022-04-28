@@ -22,7 +22,7 @@ class RobotPose():
         self.cmd = Twist()     # robot vel
 
         K_v, K_w = 0.1, 1.5    # ctrl constants
-        x_t, y_t = 0, 0.8    # goal coords
+        x_t, y_t = 1, 1   # goal coords
         theta, x, y = 0, 0, 0  # inital values
     
         #########   INIT PUBLISHERS   #########
@@ -57,12 +57,15 @@ class RobotPose():
             e_theta = np.arctan2(y_t, x_t) - theta
             e_d = np.sqrt(pow(x_t - x, 2) + pow(y_t - y, 2))
 
+            v_max = 0.4
+            w_max = 1.7
+
             # p control
             if(e_d > 0.2):          
                     v_out = K_v * e_d
-                    v_out = min(0.5, v_out)
+                    v_out = min(v_max, v_out)
                     w_out = K_w * e_theta
-                    w_out = min(2.7,w_out)
+                    w_out = min(w_max,w_out)
             else:
                 v_out = 0
                 w_out = 0
