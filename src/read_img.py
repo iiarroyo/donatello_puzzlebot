@@ -1,12 +1,10 @@
 #!/usr/bin/env pythont
-from termios import TIOCGWINSZ
 import cv2
-from cv2 import COLORMAP_DEEPGREEN
-from cv2 import CAP_PROP_DC1394_MODE_ONE_PUSH_AUTO
 import rospy
 import cv_bridge
 import numpy as np
 from sensor_msgs.msg import Image
+from geometry_msgs.msg import Twist
 
 
 class Observer():
@@ -26,13 +24,16 @@ class Observer():
         while not rospy.is_shutdown():
             if self.image.size > 0:
                 detected_color = self.detect_color()  # process img
-                print(detected_color())
                 color = detected_color()
+                print("Detected color: {0}".format(color))
                 cmd = Twist()
                 if color == "RED":
                     cmd.linear.x = 0.0
                 elif color == "GREEN":
                     cmd.linear.x = 0.1
+                else:
+                    cmd.linear.x = 0.0
+                print(cmd)
                 self.cmd_pub.publish(cmd)
                 # img to ROS Image msg
                 img_back = self.bridge.cv2_to_imgmsg(self.p_img, encoding="passthrough")
