@@ -1,18 +1,18 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 import rospy, sys
 import numpy as np
 from std_srvs.srv import Empty
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
 
-class RobotPose(): 
-    def __init__(self): 
+class RobotPose():
+    def __init__(self):
         rospy.on_shutdown(self.cleanup)
         # reset simulation every time
         reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
         reset_simulation()
 
-        ###########  CONSTANTS  ############## 
+        ###########  CONSTANTS  ##############
         r=0.05                 # wheel radius [m]
         L=0.18                 # wheel separation [m]
         self.d=0               # distance 
@@ -28,21 +28,21 @@ class RobotPose():
         if len(sys.argv) == 2:
             x_t = sys.argv[0]
             y_t = sys.argv[1]
-            
+
         #########   INIT PUBLISHERS   #########
-        ##  pub = rospy.Publisher('setPoint', UInt16MultiArray, queue_size=1) 
-        self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1) 
-        
-        ###########  SUBSCRIBERS  ############# 
-        rospy.Subscriber("wl", Float32, self.wl_cb) 
-        rospy.Subscriber("wr", Float32, self.wr_cb) 
+        ##  pub = rospy.Publisher('setPoint', UInt16MultiArray, queue_size=1)
+        self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1)
+
+        ###########  SUBSCRIBERS  #############
+        rospy.Subscriber("wl", Float32, self.wl_cb)
+        rospy.Subscriber("wr", Float32, self.wr_cb)
 
         ###########   INIT NODE   #############
         freq = 20
-        rate = rospy.Rate(freq) #20Hz 
+        rate = rospy.Rate(freq) #20Hz
         Dt = 1/float(freq) #Dt is the time between one calculation and the next one
         print("Node initialized {0}hz".format(freq))
-    
+
         while not rospy.is_shutdown():
             # vels
             v = r*(self.wr+self.wl)/2
@@ -62,7 +62,7 @@ class RobotPose():
             e_d = np.sqrt(pow(x_t - x, 2) + pow(y_t - y, 2))
 
             # p control
-            if(e_d > 0.2):          
+            if(e_d > 0.2):
                     v_out = K_v * e_d
                     v_out = min(0.5, v_out)
                     w_out = K_w * e_theta
@@ -78,20 +78,20 @@ class RobotPose():
             self.cmd.angular.z = w_out
             self.pub_cmd_vel.publish(self.cmd)
 
-            rate.sleep() 
+            rate.sleep()
 
-    def wl_cb(self, wl): 
+    def wl_cb(self, wl):
         self.wl = wl.data
-        
-    def wr_cb(self, wr): 
-        self.wr = wr.data 
-        
-    def cleanup(self): 
+
+    def wr_cb(self, wr):
+        self.wr = wr.data
+
+    def cleanup(self):
         self.cmd.linear.x = 0
         self.cmd.angular.z = 0
         self.pub_cmd_vel.publish(self.cmd)
 
-############################### MAIN PROGRAM #################################### 
-if __name__ == "__main__": 
-    rospy.init_node("Navigation node", anonymous=True) 
+############################### MAIN PROGRAM ####################################
+if __name__ == "__main__":
+    rospy.init_node("Navigation node", anonymous=True)
     RobotPose()
