@@ -1,4 +1,4 @@
-#!/usr/bin/env pythont
+#!/usr/bin/env python
 import cv2
 import rospy
 import cv_bridge
@@ -16,15 +16,14 @@ class Observer():
         rospy.Subscriber("/usb_cam/image_raw", Image, self.img_cb)
         # image publisher
         self.img_pub = rospy.Publisher("holahola", Image, queue_size=10)
-        self.cmd_pub = rospy.Publisher("cmd_vel", Image, queue_size=10)
+        self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
 
         frec = 10  # frec var
         r = rospy.Rate(frec)  # Hz
         print("Node initialized {0}Hz".format(frec))
         while not rospy.is_shutdown():
             if self.image.size > 0:
-                detected_color = self.detect_color()  # process img
-                color = detected_color()
+                color = self.detect_color()
                 print("Detected color: {0}".format(color))
                 cmd = Twist()
                 if color == "RED":
@@ -77,6 +76,8 @@ class Observer():
             return "RED"
         elif True in blob_sizesg:
             return "GREEN"
+        else:
+            return None
 
     def img_cb(self, msg):
         self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
