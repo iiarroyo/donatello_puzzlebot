@@ -29,9 +29,37 @@ class Observer():
 
     def process_img(self):
         hsv = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
+
         # mask
         maskr = cv2.inRange(hsv, (0, 88, 179), (33, 255, 255))  # red mask
         maskg = cv2.inRange(hsv, (49, 39, 130), (98, 255, 255))  # green mask
+
+        mask = maskg  # combine masks
+        # apply mask to original image
+        target = cv2.bitwise_and(self.image, self.image, mask=mask)
+
+        # threshold
+        ret, thresh = cv2.threshold(target, 127, 255, cv2.THRESH_BINARY)
+
+        # erode
+        kernel = np.ones((5, 5), np.uint8)
+        eroded = cv2.erode(thresh, kernel)
+
+        self.p_img = target
+
+    def img_cb(self, msg):
+        self.image = self.bridge.imgmsg_to_cv2(msg)
+
+
+if __name__ == "__main__":
+    rospy.init_node("img_p", anonymous=True)
+    Observer()
+
+'''
+        # mask
+        maskr = cv2.inRange(hsv, (0, 88, 179), (33, 255, 255))  # red mask
+        maskg = cv2.inRange(hsv, (49, 39, 130), (98, 255, 255))  # green mask
+
         mask = cv2.bitwise_or(maskg, maskr)  # combine masks
         # apply mask to original image
         target = cv2.bitwise_and(self.image, self.image, mask=mask)
@@ -49,12 +77,4 @@ class Observer():
         # keypoints = detector.detect(eroded) # ERROR: segmentation fault
 
         # result
-        self.p_img = eroded
-
-    def img_cb(self, msg):
-        self.image = self.bridge.imgmsg_to_cv2(msg)
-
-
-if __name__ == "__main__":
-    rospy.init_node("img_p", anonymous=True)
-    Observer()
+'''
