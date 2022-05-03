@@ -12,10 +12,10 @@ class Observer():
         self.image = np.zeros((0, 0))  # subscriber image
         self.p_img = np.zeros((0, 0))  # processed image
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
-        # rospy.Subscriber("/camera/image_raw", Image, self.img_cb)
-        rospy.Subscriber("/usb_cam/image_raw", Image, self.img_cb)
+        rospy.Subscriber("/video_source/raw", Image, self.img_cb)
+        #rospy.Subscriber("/usb_cam/image_raw", Image, self.img_cb)
         # image publisher
-        self.img_pub = rospy.Publisher("holahola", Image, queue_size=10)
+        #self.img_pub = rospy.Publisher("holahola", Image, queue_size=10)
         self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
 
         frec = 10  # frec var
@@ -36,7 +36,7 @@ class Observer():
                 self.cmd_pub.publish(cmd)
                 # img to ROS Image msg
                 img_back = self.bridge.cv2_to_imgmsg(self.p_img, encoding="passthrough")
-                self.img_pub.publish(img_back)  # publish image
+                #self.img_pub.publish(img_back)  # publish image
             r.sleep()
 
     def detect_color(self, show_img=False):
