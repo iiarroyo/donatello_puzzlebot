@@ -12,7 +12,7 @@ class Observer():
         self.image = np.zeros((0, 0))  # subscriber image
         self.p_img = np.zeros((0, 0))  # processed image
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
-        rospy.Subscriber("/video_source/raw", Image, self.img_cb)
+        rospy.Subscriber("/usb_cam/image_raw", Image, self.img_cb)
         # image publisher
         self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
         self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
@@ -35,31 +35,32 @@ class Observer():
                 self.cmd_pub.publish(cmd)
                 # img to ROS Image msg
                 img_back = self.bridge.cv2_to_imgmsg(self.p_img, encoding="passthrough")
-                #self.img_pub.publish(img_back)  # publish image
+                self.img_pub.publish(img_back)  # publish image
             r.sleep()
 
     def detect_color(self, show_img=False):
         image = self.image.copy()
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        print(image.shape)
+        scale_percent = 20 # percent of original size
+        width = int(image.shape[1] * scale_percent / 100)
+        height = int(image.shape[0] * scale_percent / 100)
+        dim = (width, height)
+        
+        # resize image
+        resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+        print(resized.shape)
+
+        hsv = cv2.cvtColor(resized, cv2.COLOR_BGR2HSV)
         
         # masks
         maskr = cv2.inRange(hsv, (0, 100, 179), (22, 255, 255))
         maskg = cv2.inRange(hsv, (49, 39, 130), (75, 255, 255))  # green mask
 
-        # apply mask to original image
-        targetr = cv2.bitwise_and(image, image, mask=maskr)
-        targetg = cv2.bitwise_and(image, image, mask=maskg)
-
-        # threshold
-        imgrayr = cv2.cvtColor(targetr, cv2.COLOR_BGR2GRAY)
-        imgrayg = cv2.cvtColor(targetg, cv2.COLOR_BGR2GRAY)
-        ret, threshr = cv2.threshold(imgrayr, 100, 255, cv2.THRESH_BINARY)
-        ret, threshg = cv2.threshold(imgrayg, 100, 255, cv2.THRESH_BINARY)
-
+ 
         # erode
         kernel = np.ones((5, 5), np.uint8)
-        erodedr = cv2.erode(threshr, kernel)
-        erodedg = cv2.erode(threshg, kernel)
+        erodedr = cv2.erode(maskr, kernel)
+        erodedg = cv2.erode(maskg, kernel)
 
 
         # blob detection
@@ -69,7 +70,7 @@ class Observer():
         keypointsg = detector.detect(erodedg)
 
         # result
-        self.p_img = targetr
+        self.p_img = erodedr
         blob_sizesr = [blob.size > 1.0 for blob in keypointsr]
         blob_sizesg = [blob.size > 1.0 for blob in keypointsg]
 
