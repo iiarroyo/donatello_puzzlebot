@@ -12,7 +12,7 @@ class Observer():
         self.image = np.zeros((0, 0))  # subscriber image
         self.p_img = np.zeros((0, 0))  # processed image
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
-        rospy.Subscriber("/usb_cam/image_raw", Image, self.img_cb)
+        rospy.Subscriber("/video_source/raw", Image, self.img_cb)
         # image publisher
         self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
         self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
