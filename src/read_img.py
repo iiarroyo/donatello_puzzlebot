@@ -14,11 +14,7 @@ class Observer():
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
         rospy.Subscriber("/video_source/raw", Image, self.img_cb)
         # image publisher
-<<<<<<< HEAD
-        #self.img_pub = rospy.Publisher("holahola", Image, queue_size=10)
-=======
         self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
->>>>>>> 477b2d7c0941b7c8554834ee14a8281c4b65fc7f
         self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
 
         frec = 10  # frec var
