@@ -53,10 +53,10 @@ class Observer():
         hsv = cv2.cvtColor(resized, cv2.COLOR_BGR2HSV)
         
         # masks
-        maskr = cv2.inRange(hsv, (0, 100, 179), (22, 255, 255))
+        maskr = cv2.inRange(hsv, (0, 120, 50), (20, 255, 255))
         maskg = cv2.inRange(hsv, (49, 39, 130), (75, 255, 255))  # green mask
 
- 
+
         # erode
         kernel = np.ones((5, 5), np.uint8)
         erodedr = cv2.erode(maskr, kernel)
