@@ -1,9 +1,22 @@
 #!/usr/bin/env python
+from pyexpat.model import XML_CQUANT_NONE
 import rospy, sys
 import numpy as np
 from std_srvs.srv import Empty
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
+import time
+from geometry_msgs.msg import Point
+
+
+# points = np.array([ [0, 0],
+#                     [1.0, 0],
+#                     [1.5, -0.5],
+#                     [2.0, 0.0]])
+# for i in range(1, len(points)):
+#     points[i, 0] = points[i, 0] - points[i-1, 0]
+#     points[i, 1] = points[i, 1] - points[i-1, 1]
+
 
 class RobotPose():
     def __init__(self):
@@ -11,7 +24,15 @@ class RobotPose():
         # reset simulation every time
         reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
         reset_simulation()
-
+        j = 0
+        self.points = np.array([
+                                [0.0, 0.0],
+                                [1.0, 0.0],
+                                [1.5, -0.5],
+                                [2.0, 0.0]])
+        self.goals = self.get_goal()
+        goal = self.goals.next()
+        prev_goal = None
         ###########  CONSTANTS  ##############
         r=0.05                 # wheel radius [m]
         L=0.18                 # wheel separation [m]
@@ -21,12 +42,10 @@ class RobotPose():
         self.wl=0              # left wheel vel measured
         self.cmd = Twist()     # robot vel
 
-        K_v, K_w = 0.1, 1.5    # ctrl constants
-        x_t, y_t = 1, 3   # goal coords
+        K_v, K_w = 0.8, 0.6    # ctrl constants
+        # x_t, y_t = points[j][0], points[j][1]   # goal coords
         theta, x, y = 0, 0, 0  # inital values
-        if len(sys.argv) == 2:
-            x_t = sys.argv[0]
-            y_t = sys.argv[1]
+        theta_aux, x_aux, y_aux = 0,0, 0
 
         #########   INIT PUBLISHERS   #########
         ##  pub = rospy.Publisher('setPoint', UInt16MultiArray, queue_size=1)
@@ -51,35 +70,42 @@ class RobotPose():
             x += v*Dt*np.cos(theta)
             y += v*Dt*np.sin(theta)
             theta += w*Dt
-            if theta > np.pi:
-                theta = theta - 2*np.pi
-            elif theta < -np.pi:
-                theta = theta + 2*np.pi
+            x_aux += v*Dt*np.cos(theta_aux)
+            y_aux += v*Dt*np.sin(theta_aux)
+            theta_aux += w*Dt
+            theta = np.arctan2(np.sin(theta),np.cos(theta))
 
             # errors
-            e_theta = np.arctan2(y_t, x_t) - theta
-            e_d = np.sqrt(pow(x_t - x, 2) + pow(y_t - y, 2))
+            e_theta = np.arctan2(goal.y, goal.x) - theta
+            e_d = np.sqrt(pow(goal.x - x, 2) + pow(goal.y - y, 2))
 
             v_max = 0.4
             w_max = 1.7
 
             # p control
-            if(e_d > 0.2):
-                    v_out = K_v * e_d
-                    v_out = min(v_max, v_out)
+            if(abs(e_theta) > 0.1):
+                    v_out = 0.0
                     w_out = K_w * e_theta
-                    w_out = min(w_max,w_out)
+            elif(e_d > 0.07):
+                    v_out = K_v * e_d
+                    w_out = K_w * e_theta
             else:
+                # x_t, y_t = -1.0, -1.0
+                x, y = 0,0
                 v_out = 0.0
                 w_out = 0.0
-
-            print("Error dist: ", e_d," Error angulo: ",e_theta)
-            print("Vel lineal: ", v_out, " Vel ang: ",w_out)
+                prev_goal = goal
+                goal = self.goals.next()
+                print(goal.x, goal.y)
+                # x_t = points[j][0] 
+                # y_t = points[j][1]
+            # print(x_aux, y_aux)
+            # print("Error dist: ", e_d," Error angulo: ",e_theta)
+            # print("Vel lineal: ", v_out, " Vel ang: ",w_out)
             # cmd_vel publish
             self.cmd.linear.x = v_out
             self.cmd.angular.z = w_out
             self.pub_cmd_vel.publish(self.cmd)
-
             rate.sleep()
 
     def wl_cb(self, wl):
@@ -87,6 +113,19 @@ class RobotPose():
 
     def wr_cb(self, wr):
         self.wr = wr.data
+
+    def get_goal(self):
+        # prev_point = None
+        for i in range(1, len(self.points)):
+            yield Point(self.points[i, 0] - self.points[i - 1, 0],  # x
+                        self.points[i, 1] - self.points[i - 1, 1],  # y
+                         0)                                         # z
+        
+        for i in range(len(self.points)-2, -1, -1):
+            yield Point(self.points[i, 0] - self.points[i + 1, 0],  # x
+                        self.points[i, 1] - self.points[i + 1, 1],  # y
+                         0)            
+
 
     def cleanup(self):
         self.cmd.linear.x = 0
