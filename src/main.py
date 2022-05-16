@@ -1,29 +1,22 @@
 #!/usr/bin/env python
-from pyexpat.model import XML_CQUANT_NONE
-import rospy, sys
+import sys
+import time
+import rospy
+import platform
 import numpy as np
 from std_srvs.srv import Empty
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
-import time
 from geometry_msgs.msg import Point
-
-
-# points = np.array([ [0, 0],
-#                     [1.0, 0],
-#                     [1.5, -0.5],
-#                     [2.0, 0.0]])
-# for i in range(1, len(points)):
-#     points[i, 0] = points[i, 0] - points[i-1, 0]
-#     points[i, 1] = points[i, 1] - points[i-1, 1]
-
+from std_msgs.msg import String
 
 class RobotPose():
     def __init__(self):
         rospy.on_shutdown(self.cleanup)
         # reset simulation every time
-        reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
-        reset_simulation()
+        if platform.machine() == 'x86_64':
+            reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+            reset_simulation()
         j = 0
         self.points = np.array([
                                 [0.0, 0.0],
@@ -41,6 +34,7 @@ class RobotPose():
         self.wr=0              # right wheel vel measured
         self.wl=0              # left wheel vel measured
         self.cmd = Twist()     # robot vel
+        self.color = None
 
         K_v, K_w = 0.8, 0.6    # ctrl constants
         # x_t, y_t = points[j][0], points[j][1]   # goal coords
@@ -54,14 +48,17 @@ class RobotPose():
         ###########  SUBSCRIBERS  #############
         rospy.Subscriber("wl", Float32, self.wl_cb)
         rospy.Subscriber("wr", Float32, self.wr_cb)
+        rospy.Subscriber("/detected_color", String, self.color_cb)
 
         ###########   INIT NODE   #############
         freq = 20
         rate = rospy.Rate(freq) #20Hz
         Dt = 1/float(freq) #Dt is the time between one calculation and the next one
         print("Node initialized {0}hz".format(freq))
+        while self.color != "GREEN": pass # wait until green is detected
 
         while not rospy.is_shutdown():
+            if self.color == "RED": break
             # vels
             v = r*(self.wr+self.wl)/2
             w = r*(self.wr-self.wl)/L
@@ -113,9 +110,11 @@ class RobotPose():
 
     def wr_cb(self, wr):
         self.wr = wr.data
+    
+    def color_cb(self, color):
+        self.color = color.data
 
     def get_goal(self):
-        # prev_point = None
         for i in range(1, len(self.points)):
             yield Point(self.points[i, 0] - self.points[i - 1, 0],  # x
                         self.points[i, 1] - self.points[i - 1, 1],  # y
@@ -124,7 +123,7 @@ class RobotPose():
         for i in range(len(self.points)-2, -1, -1):
             yield Point(self.points[i, 0] - self.points[i + 1, 0],  # x
                         self.points[i, 1] - self.points[i + 1, 1],  # y
-                         0)            
+                         0)                                         # z
 
 
     def cleanup(self):
