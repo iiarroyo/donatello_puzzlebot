@@ -1,21 +1,29 @@
 #!/usr/bin/env python
 import cv2
 import rospy
+import platform
 import cv_bridge
 import numpy as np
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
+from std_msgs.msg import String
 
 
 class Observer():
     def __init__(self):
+        if platform.machine() == 'x86_64':
+            rospy.Subscriber("/camera/image_raw", Image, self.img_cb)
+        else:
+            rospy.Subscriber("/video_source/raw", Image, self.img_cb)
+        
+
         self.image = np.zeros((0, 0))  # subscriber image
         self.p_img = np.zeros((0, 0))  # processed image
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
-        rospy.Subscriber("/video_source/raw", Image, self.img_cb)
         # image publisher
         self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
         self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
+        self.detected_color_pub = rospy.Publisher("detected_color", String, queue_size=10)
 
         frec = 10  # frec var
         r = rospy.Rate(frec)  # Hz
@@ -23,6 +31,7 @@ class Observer():
         while not rospy.is_shutdown():
             if self.image.size > 0:
                 color = self.detect_color()
+                self.detected_color_pub.publish(String(color))
                 print("Detected color: {0}".format(color))
                 cmd = Twist()
                 if color == "RED":
@@ -32,10 +41,10 @@ class Observer():
                 else:
                     cmd.linear.x = 0.0
                 print(cmd)
-                self.cmd_pub.publish(cmd)
+                # self.cmd_pub.publish(cmd)
                 # img to ROS Image msg
-                img_back = self.bridge.cv2_to_imgmsg(self.p_img, encoding="passthrough")
-                self.img_pub.publish(img_back)  # publish image
+                # img_back = self.bridge.cv2_to_imgmsg(self.p_img, encoding="passthrough")
+                # self.img_pub.publish(img_back)  # publish image
             r.sleep()
 
     def detect_color(self, show_img=False):
@@ -89,6 +98,6 @@ class Observer():
 
 
 if __name__ == "__main__":
-    rospy.init_node("img_p", anonymous=True)
+    rospy.init_node("img_detector", anonymous=True)
     Observer()
 
