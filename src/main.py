@@ -10,56 +10,59 @@ from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Point
 from std_msgs.msg import String
 
+
 class RobotPose():
     def __init__(self):
         rospy.on_shutdown(self.cleanup)
         # reset simulation every time
         if platform.machine() == 'x86_64':
-            reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+            reset_simulation = rospy.ServiceProxy(
+                '/gazebo/reset_simulation', Empty)
             reset_simulation()
-        j = 0
         # default coordinates
         self.points = np.array([
-                                [0.0, 0.0],
-                                [1.0, 0.0],
-                                [1.5, -0.5],
-                                [2.0, 0.0]])
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [1.5, -0.5],
+            [2.0, 0.0]])
         # coordinates as arguments
-        if len(sys.argv) > 1: # MUST INCLUDE (0,0)
+        if len(sys.argv) > 1:  # MUST INCLUDE (0,0)
             self.points = self.argv_to_list(sys.argv[1:])
-        self.goals = self.get_goal() # enerator object
-        goal = self.goals.next() # first goal, ie (0, 0)
-        prev_goal = None
-        ###########  CONSTANTS  ##############
-        r=0.05                 # wheel radius [m]
-        L=0.18                 # wheel separation [m]
-        self.d=0               # distance 
-        self.theta=0           # angle
-        self.wr=0              # right wheel vel measured
-        self.wl=0              # left wheel vel measured
+        self.goals = self.get_goal()  # generator object
+        goal = self.goals.next()  # first goal, ie (0, 0)
+        # Constants
+        r = 0.05                 # wheel radius [m]
+        L = 0.18                 # wheel separation [m]
+        self.d = 0               # distance
+        self.theta = 0           # angle
+        self.wr = 0              # right wheel vel measured
+        self.wl = 0              # left wheel vel measured
         self.cmd = Twist()     # robot vel
         self.color = None
 
         K_v, K_w = 0.8, 0.6    # ctrl constants
         theta, x, y = 0, 0, 0  # inital values
-        theta_aux, x_aux, y_aux = 0,0, 0
+        theta_aux, x_aux, y_aux = 0, 0, 0
 
-        #########   INIT PUBLISHERS   #########
+        # Publishers
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1)
 
-        ###########  SUBSCRIBERS  #############
+        # Subscribers
         rospy.Subscriber("wl", Float32, self.wl_cb)
         rospy.Subscriber("wr", Float32, self.wr_cb)
         rospy.Subscriber("/detected_color", String, self.color_cb)
 
-        ###########   INIT NODE   #############
+        # Node
         freq = 20
-        rate = rospy.Rate(freq) #20Hz
-        Dt = 1/float(freq) #Dt is the time between one calculation and the next one
+        rate = rospy.Rate(freq)  # 20Hz
+        # Dt is the time between one calculation and the next one
+        Dt = 1/float(freq)
         print("Node initialized {0}hz".format(freq))
-        while self.color != "GREEN": pass # wait until GREEN is detected
+        while self.color != "GREEN":
+            pass
         while not rospy.is_shutdown():
-            if self.color == "RED": break # break if RED is detected
+            if self.color == "RED":
+                break
             # vels
             v = r*(self.wr+self.wl)/2
             w = r*(self.wr-self.wl)/L
@@ -71,7 +74,7 @@ class RobotPose():
             x_aux += v*Dt*np.cos(theta_aux)
             y_aux += v*Dt*np.sin(theta_aux)
             theta_aux += w*Dt
-            theta = np.arctan2(np.sin(theta),np.cos(theta))
+            theta = np.arctan2(np.sin(theta), np.cos(theta))
 
             # errors
             e_theta = np.arctan2(goal.y, goal.x) - theta
@@ -82,19 +85,19 @@ class RobotPose():
 
             # p control
             if(abs(e_theta) > 0.1):
-                    v_out = 0.0
-                    w_out = K_w * e_theta
+                v_out = 0.0
+                w_out = K_w * e_theta
             elif(e_d > 0.07):
-                    v_out = K_v * e_d
-                    w_out = K_w * e_theta
+                v_out = K_v * e_d
+                w_out = K_w * e_theta
             else:
-                x, y = 0,0
+                x, y = 0, 0
                 v_out = 0.0
                 w_out = 0.0
                 try:
-                    goal = self.goals.next() # get new goal
-                except StopIteration: # stop if no more goals
-                    print("DONE!") 
+                    goal = self.goals.next()
+                except StopIteration:
+                    print("DONE!")
                     break
                 print(goal.x, goal.y)
 
@@ -109,7 +112,7 @@ class RobotPose():
 
     def wr_cb(self, wr):
         self.wr = wr.data
-    
+
     def color_cb(self, color):
         self.color = color.data
 
@@ -123,28 +126,28 @@ class RobotPose():
         for i in range(1, len(self.points)):
             yield Point(self.points[i, 0] - self.points[i - 1, 0],  # x
                         self.points[i, 1] - self.points[i - 1, 1],  # y
-                         0)                                         # z
+                        0)                                         # z
         # reversed goals
         for i in range(len(self.points)-2, -1, -1):
             yield Point(self.points[i, 0] - self.points[i + 1, 0],  # x
                         self.points[i, 1] - self.points[i + 1, 1],  # y
-                         0)                                         # z
+                        0)                                         # z
 
     def argv_to_list(self, argv_list):
         """
         Tranforms sys.argv to coordinates
-        Revieves even len of list
+        :argv_list: even list of strings
         :return: np.array of coords
         """
-        int_list = [float(num) for num in argv_list]  # str to floats
-        return np.array(int_list).reshape(-1, 2)  # flat lit to 2d matrix
+        int_list = [float(num) for num in argv_list]
+        return np.array(int_list).reshape(-1, 2)
 
     def cleanup(self):
         self.cmd.linear.x = 0
         self.cmd.angular.z = 0
         self.pub_cmd_vel.publish(self.cmd)
 
-############################### MAIN PROGRAM ####################################
+
 if __name__ == "__main__":
     rospy.init_node("Navigation_node", anonymous=True)
     RobotPose()
