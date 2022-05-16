@@ -18,13 +18,17 @@ class RobotPose():
             reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
             reset_simulation()
         j = 0
+        # default coordinates
         self.points = np.array([
                                 [0.0, 0.0],
                                 [1.0, 0.0],
                                 [1.5, -0.5],
                                 [2.0, 0.0]])
-        self.goals = self.get_goal()
-        goal = self.goals.next()
+        # coordinates as arguments
+        if len(sys.argv) > 1: # MUST INCLUDE (0,0)
+            self.points = self.argv_to_list(sys.argv[1:])
+        self.goals = self.get_goal() # enerator object
+        goal = self.goals.next() # first goal, ie (0, 0)
         prev_goal = None
         ###########  CONSTANTS  ##############
         r=0.05                 # wheel radius [m]
@@ -37,12 +41,10 @@ class RobotPose():
         self.color = None
 
         K_v, K_w = 0.8, 0.6    # ctrl constants
-        # x_t, y_t = points[j][0], points[j][1]   # goal coords
         theta, x, y = 0, 0, 0  # inital values
         theta_aux, x_aux, y_aux = 0,0, 0
 
         #########   INIT PUBLISHERS   #########
-        ##  pub = rospy.Publisher('setPoint', UInt16MultiArray, queue_size=1)
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1)
 
         ###########  SUBSCRIBERS  #############
@@ -55,10 +57,9 @@ class RobotPose():
         rate = rospy.Rate(freq) #20Hz
         Dt = 1/float(freq) #Dt is the time between one calculation and the next one
         print("Node initialized {0}hz".format(freq))
-        while self.color != "GREEN": pass # wait until green is detected
-
+        while self.color != "GREEN": pass # wait until GREEN is detected
         while not rospy.is_shutdown():
-            if self.color == "RED": break
+            if self.color == "RED": break # break if RED is detected
             # vels
             v = r*(self.wr+self.wl)/2
             w = r*(self.wr-self.wl)/L
@@ -87,18 +88,16 @@ class RobotPose():
                     v_out = K_v * e_d
                     w_out = K_w * e_theta
             else:
-                # x_t, y_t = -1.0, -1.0
                 x, y = 0,0
                 v_out = 0.0
                 w_out = 0.0
-                prev_goal = goal
-                goal = self.goals.next()
+                try:
+                    goal = self.goals.next() # get new goal
+                except StopIteration: # stop if no more goals
+                    print("DONE!") 
+                    break
                 print(goal.x, goal.y)
-                # x_t = points[j][0] 
-                # y_t = points[j][1]
-            # print(x_aux, y_aux)
-            # print("Error dist: ", e_d," Error angulo: ",e_theta)
-            # print("Vel lineal: ", v_out, " Vel ang: ",w_out)
+
             # cmd_vel publish
             self.cmd.linear.x = v_out
             self.cmd.angular.z = w_out
@@ -115,16 +114,30 @@ class RobotPose():
         self.color = color.data
 
     def get_goal(self):
+        """
+        Generator of goals
+        - transforms current coord to have previous coord as reference
+        :return: one goal at a time
+        """
+        # goals in order
         for i in range(1, len(self.points)):
             yield Point(self.points[i, 0] - self.points[i - 1, 0],  # x
                         self.points[i, 1] - self.points[i - 1, 1],  # y
                          0)                                         # z
-        
+        # reversed goals
         for i in range(len(self.points)-2, -1, -1):
             yield Point(self.points[i, 0] - self.points[i + 1, 0],  # x
                         self.points[i, 1] - self.points[i + 1, 1],  # y
                          0)                                         # z
 
+    def argv_to_list(self, argv_list):
+        """
+        Tranforms sys.argv to coordinates
+        Revieves even len of list
+        :return: np.array of coords
+        """
+        int_list = [float(num) for num in argv_list]  # str to floats
+        return np.array(int_list).reshape(-1, 2)  # flat lit to 2d matrix
 
     def cleanup(self):
         self.cmd.linear.x = 0
@@ -133,5 +146,5 @@ class RobotPose():
 
 ############################### MAIN PROGRAM ####################################
 if __name__ == "__main__":
-    rospy.init_node("Navigation node", anonymous=True)
+    rospy.init_node("Navigation_node", anonymous=True)
     RobotPose()
