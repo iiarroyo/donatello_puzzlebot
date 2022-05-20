@@ -31,8 +31,8 @@ class RobotPose():
         self.goals = self.get_goal()  # generator object
         goal = self.goals.next()  # first goal, ie (0, 0)
         # Constants
-        r = 0.05                 # wheel radius [m]
-        L = 0.18                 # wheel separation [m]
+        r=0.05                # wheel radius [m]
+        L=0.185               # wheel separation [m]
         self.d = 0               # distance
         self.theta = 0           # angle
         self.wr = 0              # right wheel vel measured
@@ -61,6 +61,7 @@ class RobotPose():
         while self.color != "GREEN":
             pass
         while not rospy.is_shutdown():
+            print(self.color)
             if self.color == "RED":
                 break
             # vels
@@ -85,11 +86,14 @@ class RobotPose():
 
             # p control
             if(abs(e_theta) > 0.1):
+                print("Dando vuelta a", goal)
                 v_out = 0.0
-                w_out = K_w * e_theta
-            elif(e_d > 0.07):
-                v_out = K_v * e_d
-                w_out = K_w * e_theta
+                w_out = 0.3*K_w * e_theta
+            elif(e_d > 0.1):
+                print("Lllendo a", goal)
+                v_out = 0.7*K_v * e_d
+                vout = min(v_out, 0.5)
+                w_out = 0.3*K_w * e_theta
             else:
                 x, y = 0, 0
                 v_out = 0.0
@@ -151,3 +155,4 @@ class RobotPose():
 if __name__ == "__main__":
     rospy.init_node("Navigation_node", anonymous=True)
     RobotPose()
+    print("Programa finalizado")
