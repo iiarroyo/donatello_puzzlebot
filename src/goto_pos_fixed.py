@@ -9,7 +9,9 @@ from geometry_msgs.msg import Point
 
 points = [(0,0), (1,1), (0,0)]
 for i in range(1, len(points)):
-    points[i] -= points[i+1]
+    points[i][0] -= points[i+1][0]
+    points[i][1] -= points[i+1][1]
+
 
 
 class RobotPose(): 

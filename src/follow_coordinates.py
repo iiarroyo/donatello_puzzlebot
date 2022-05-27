@@ -45,7 +45,7 @@ class RobotPose():
         theta_aux, x_aux, y_aux = 0, 0, 0
 
         # Publishers
-        self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=1)
+        self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=10)
 
         # Subscribers
         rospy.Subscriber("wl", Float32, self.wl_cb)
@@ -58,8 +58,8 @@ class RobotPose():
         # Dt is the time between one calculation and the next one
         Dt = 1/float(freq)
         print("Node initialized {0}hz".format(freq))
-        while self.color != "GREEN":
-            pass
+        # while self.color != "GREEN":
+        #     pass
         while not rospy.is_shutdown():
             print(self.color)
             if self.color == "RED":
@@ -132,10 +132,10 @@ class RobotPose():
                         self.points[i, 1] - self.points[i - 1, 1],  # y
                         0)                                         # z
         # reversed goals
-        for i in range(len(self.points)-2, -1, -1):
-            yield Point(self.points[i, 0] - self.points[i + 1, 0],  # x
-                        self.points[i, 1] - self.points[i + 1, 1],  # y
-                        0)                                         # z
+        # for i in range(len(self.points)-2, -1, -1):
+        #     yield Point(self.points[i, 0] - self.points[i + 1, 0],  # x
+        #                 self.points[i, 1] - self.points[i + 1, 1],  # y
+        #                 0)                                         # z
 
     def argv_to_list(self, argv_list):
         """
