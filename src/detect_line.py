@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 import cv2
 import rospy
 import platform
@@ -9,44 +10,48 @@ from std_srvs.srv import Empty
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
-from matplotlib import pyplot as plt
+from matplotlib import cm, pyplot as plt
 
-reset_simulation = rospy.ServiceProxy(
-                '/gazebo/reset_simulation', Empty)
-reset_simulation()
+# reset_simulation = rospy.ServiceProxy(
+#                 '/gazebo/reset_simulation', Empty)
+# reset_simulation()
 
 class Observer():
     def __init__(self):
-        if platform.machine() == 'x86_64':
-            rospy.Subscriber("/camera/image_raw", Image, self.img_cb)
-        else:
-            rospy.Subscriber("/video_source/raw", Image, self.img_cb)
+        # if platform.machine() == 'x86_64':
+        rospy.Subscriber("/camera/image_raw", Image, self.img_cb)
+        # else:
+        # rospy.Subscriber("/video_source/raw", Image, self.img_cb)
         
 
-        self.image = np.zeros((0, 0))  # subscriber image
+        self.image = None  # subscriber image
         self.p_img = np.zeros((0, 0))  # processed image
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
         # image publisher
         self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
         self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
-        self.detected_color_pub = rospy.Publisher("detected_color", String, queue_size=10)
+        # self.detected_color_pub = rospy.Publisher("detected_color", String, queue_size=10)
 
         frec = 10  # frec var
         r = rospy.Rate(frec)  # Hz
         print("Node initialized {0}Hz".format(frec))
         cmd = Twist()
         while not rospy.is_shutdown():
-            if self.image.size > 0:
-                line = self.detect_line()
-                if line is not None:
-                    cmd.linear.x = 0.1
-                    a_error = 0.03 * (40 - line)
-                    cmd.angular.z = a_error
-                else:
-                    cmd.linear.x = 0.0
-                    cmd.angular.z = 0.0
-                self.cmd_pub.publish(cmd)
-                # img to ROS Image msg
+            if self.image is None:
+                print("image is None")
+                continue
+            print(self.image.shape)
+            line = self.detect_line()
+            if line is not None:
+                cmd.linear.x = 0.01
+                a_error = 0.003 * (40 - line)
+                cmd.angular.z = a_error
+            else:
+                cmd.linear.x = 0.0
+                cmd.angular.z = 0.0
+            # self.cmd_pub.publish(cmd)
+            # img to ROS Image msg
+            if self.p_img is not None:
                 img_back = self.bridge.cv2_to_imgmsg(self.p_img, encoding="passthrough")
                 self.img_pub.publish(img_back)  # publish image
             r.sleep()
@@ -58,22 +63,42 @@ class Observer():
         height = int(image.shape[0] * scale_percent / 100)
         dim = (width, height)
         # resize image
-        resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
-        gray_resized =  cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+        img_height, img_width, _ = image.shape
+        # resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+        gray_resized =  cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         gray_resized_blur = cv2.GaussianBlur(gray_resized, (7, 7), 0)
-        cropped = gray_resized_blur[150:,40:-40]
-        ret,thresh = cv2.threshold(cropped, 160, 255, cv2.THRESH_BINARY)
-        kernel = np.ones((3, 3), np.uint8)
+        cropped = gray_resized_blur[int(img_height*0.90):, int(img_width*0.45):-int(img_width*0.45)]
+        # print(gray_resized.shape)
+        ret,thresh = cv2.threshold(cropped, 100, 255, cv2.THRESH_BINARY)
+        # print(type(thresh))
+        kernel = np.ones((6, 6), np.uint8)
         eroded = cv2.erode(~thresh, kernel)
         col_sum = np.sum(eroded, axis=0, dtype="int64")
-        self.p_img = cropped  # processed image
+        col_sum_l = col_sum[:39]
+        col_sum_r = col_sum[40:]
+        print(sum(col_sum_l))
+        print(sum(col_sum_r))
+
+
+
+        peaks = 0
+
+
+        self.p_img = eroded  # processed image
+
+
+
         peaks = np.where(col_sum > 1000)[0]
         print(peaks)
-        if plot:
-            plt.figure(1)
-            x = np.arange(len(col_sum))
-            plt.plot(x, col_sum)
-            plt.show()
+        # if plot:
+        # plt.figure(1)
+        # x = np.arange(len(col_sum))
+        # plt.plot(x, col_sum_l)
+        # plt.show()
+        # plt.figure(2)
+        # plt.plot(x, col_sum_r)
+        # plt.show()
+
         return np.average(peaks)
 
     def group_cols(self, arr, win_size):
@@ -89,6 +114,7 @@ class Observer():
 
     def img_cb(self, msg):
         self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        return
 
     def cleanup(self):
         last_cmd = Twist()
