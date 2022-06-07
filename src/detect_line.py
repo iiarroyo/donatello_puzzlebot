@@ -8,6 +8,7 @@ import numpy as np
 from numpy import dtype
 from std_srvs.srv import Empty
 from std_msgs.msg import String
+from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from matplotlib import cm, pyplot as plt
@@ -29,7 +30,8 @@ class Observer():
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
         # image publisher
         self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
-        self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
+        self.cmd_pub = rospy.Publisher("vel_line", Twist, queue_size=10)
+        self.line_pub = rospy.Publisher("line", Int32, queue_size=10)
         # self.detected_color_pub = rospy.Publisher("detected_color", String, queue_size=10)
 
         frec = 10  # frec var
@@ -42,6 +44,7 @@ class Observer():
                 print("image is None")
                 continue
             line = self.detect_line()
+	    self.line_pub.publish(line)
             if line is not None:
                 print("Line: ", abs(48-line))
                 if(abs(48-line)<10):
@@ -49,13 +52,6 @@ class Observer():
                 else:
                     cmd.linear.x = (0.05)
 
-                # a_error = 0.003 * (40 - line)
-                # if line > 0:
-                #     cmd.angular.z = 0.15
-                # elif line < 0:
-                #     cmd.angular.z = -0.15
-                # else:
-                #     cmd.angular.z = 0.0
                 cmd.angular.z = 0.003 * (48 - line)
                 print("angular", cmd.angular.z )
                 print("linear", cmd.linear.x)
