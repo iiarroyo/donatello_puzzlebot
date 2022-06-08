@@ -31,7 +31,8 @@ class Control():
         rospy.Subscriber("/color", String, self.color_cb)
         rospy.Subscriber("/sign", String, self.sign_cb)
         rospy.Subscriber("/vel_line", Twist, self.vel_cb)
-
+        rospy.Subscriber("wl", Float32, self.wl_cb)
+        rospy.Subscriber("wr", Float32, self.wr_cb)
 
     # ---------------------     CONSTANTS       ------------------------------
 
@@ -42,6 +43,10 @@ class Control():
         self.current_state = STOP
         self.vel_line = Twist()
         self.cmd_vel = Twist()
+        self.wl = 0
+        self.wr = 0
+        self.r = 0.05                 
+        self.L = 0.18                 
 
         self.freq = 20
         self.rate = rospy.Rate(self.freq)  # 20Hz
@@ -64,11 +69,51 @@ class Control():
     def vel_cb(self, msg):
         self.vel_line = msg
 
+    def wl_cb(self, msg):
+        self.wl = msg.data
+
+    def wr_cb(self, msg):
+        self.wr = msg.data
+
+
+    # -------------------   FUNCTIONS   ----------------------------------------
+
+    def forward_move(self):
+        x = 0
+        theta = 0
+        vel_forward = Twist()
+        while(x<15):
+            v = self.r*(self.wr+self.wl)/2
+            w = self.r*(self.wr-self.wl)/self.L
+            x += v*self.Dt*np.cos(theta)
+            theta += w*self.Dt
+
+            vel_forward.linear.x = 0.1
+            vel_forward.angular.z = 0
+            self.cmd_vel_pub(vel_forward)
+
+    def turn(self,degrees,cw=True):
+        x = 0
+        theta = 0
+        vel_forward = Twist()
+        while(theta<degrees):
+            v = self.r*(self.wr+self.wl)/2
+            w = self.r*(self.wr-self.wl)/self.L
+            x += v*self.Dt*np.cos(theta)
+            theta += w*self.Dt
+            0
+            vel_angular = 0.2 if cw else -0.2
+            vel_forward.linear.x = 0
+            vel_forward.angular.z = vel_angular
+            self.cmd_vel_pub(vel_forward)
+
+
     # ------------------- STATE MACHINE ----------------------------------------
 
     def main(self):
         while not rospy.is_shutdown():
             
+        
             if(self.start_robot == "True"):
                 self.current_state = FOLLOW_LINE
             
@@ -87,17 +132,21 @@ class Control():
 
             if(self.current_state == FORWARD):
                 print("Going forward")
-                time.sleep(5)
+                self.forward_move(30)
                 self.current_state = FOLLOW_LINE
 
             if(self.current_state == TURN_RIGHT):
                 print("Turning Right")
-                time.sleep(5)
+                self.forward_move(15)
+                self.turn(90,cw = True)
+                self.forward_move(15)
                 self.current_state = FOLLOW_LINE
 
             if(self.current_state == TURN_LEFT):
                 print("Turning Left")
-                time.sleep(5)
+                self.forward_move(15)
+                self.turn(90,cw = False)
+                self.forward_move(15)
                 self.current_state = FOLLOW_LINE
 
             if(self.current_state == STOP):
@@ -105,7 +154,7 @@ class Control():
                     self.current_state == FOLLOW_LINE
                 else:
                     self.cmd_vel.linear.x = 0
-                    self.cmd_vel.linear.z = 0
+                    self.cmd_vel.angular.z = 0
                     print("Stopped")
             
             self.cmd_vel_pub.publish(self.cmd_vel)
@@ -120,3 +169,92 @@ if __name__ == '__main__':
     control = Control()
     control.main()
 
+
+
+
+
+
+
+
+
+
+
+
+# --------- borradores
+
+        # def execute(self):
+    #     if self.state == STOP:
+    #         self.stop()
+    #     elif self.state == FORWARD:
+    #         self.go_forward()
+    #     elif self.state == BACKWARD:
+    #         self.go_backward()
+    #     elif self.state == TURN_LEFT:
+    #         self.turn_left()
+    #     elif self.state == TURN_RIGHT:
+    #         self.turn_right()
+    #     elif self.state == FOLLOW_LINE:
+    #         self.follow_line()
+    #     else:
+    #         self.stop()
+
+
+     # def go_forward(self):
+    #     self.x, self.y, self.theta = 0.0, 0.0, 0.0
+    #     while self.state == FORWARD:
+    #         cmd = self.goto_pos(0.10, 0.0)
+    #         self.cmd_vel_pub.publish(cmd)
+
+    # def turn_right(self):
+    #     self.cmd_vel.linear.x = 0.0
+    #     self.cmd_vel.angular.z = 0.1
+    #     self.cmd_vel_pub.publish(self.cmd_vel)
+
+    # def turn_left(self):
+    #     self.cmd_vel.linear.x = 0.0
+    #     self.cmd_vel.angular.z = -0.1
+    #     self.cmd_vel_pub.publish(self.cmd_vel)
+
+    # def stop(self):
+    #     self.cmd_vel.linear.x = 0.0
+    #     self.cmd_vel.angular.z = 0.0
+    #     self.cmd_vel_pub.publish(self.cmd_vel)
+
+    # def follow_line(self, line_idx):
+    #     if self.line_idx is None:
+    #         self.current_state = self.future_state
+    #         self.future_state = None
+    #     self.cmd_vel.linear.x = 0.1
+    #     self.cmd_vel.angular.z = 0.0
+    #     self.cmd_vel_pub.publish(self.cmd_vel)
+
+    # # -------------------------------------------------------------------------
+
+    # def increase_velocity(self):
+    #     self.cmd_vel.linear.x = 0.2
+    #     self.cmd_vel.angular.z = 0.0
+    #     self.cmd_vel_pub.publish(self.cmd_vel)
+
+    # def decrease_velocity(self):
+    #     self.cmd_vel.linear.x = 0.0
+    #     self.cmd_vel.angular.z = 0.0
+    #     self.cmd_vel_pub.publish(self.cmd_vel)
+
+    # def wl_cb(self, msg):
+    #     self.wl = msg.data
+
+    # def wr_cb(self, msg):
+    #     self.wr = msg.data
+
+        
+        #self.cmd_vel = Twist()
+        #self.kv = 0.1
+        #self.kw = 0.1
+        #self.r = 0.05                 # wheel radius [m]
+        #self.L = 0.18                 # wheel separation [m]
+
+        #self.linear_velocity = 0.1
+        #self.angular_velocity = 0.1
+
+        #rospy.Subscriber("wl", Float32, self.wl_cb)
+        #rospy.Subscriber("wr", Float32, self.wr_cb)
