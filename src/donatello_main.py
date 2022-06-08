@@ -90,7 +90,7 @@ class Control():
 
             vel_forward.linear.x = 0.1
             vel_forward.angular.z = 0
-            self.cmd_vel_pub(vel_forward)
+            self.cmd_vel_pub.publish(vel_forward)
 
     def turn(self,degrees,cw=True):
         x = 0
@@ -105,7 +105,7 @@ class Control():
             vel_angular = 0.2 if cw else -0.2
             vel_forward.linear.x = 0
             vel_forward.angular.z = vel_angular
-            self.cmd_vel_pub(vel_forward)
+            self.cmd_vel_pub.publish(vel_forward)
 
 
     # ------------------- STATE MACHINE ----------------------------------------
