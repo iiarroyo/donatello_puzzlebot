@@ -46,7 +46,7 @@ cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
 cv2.namedWindow("Cropped", cv2.WINDOW_NORMAL)
 
 def findTrafficSign(image,text_s,text_c):
-    text_2 = text_c
+    text_2 = "Last signal: " + text_c
     text = text_s
     # MinRadius= cv2.getTrackbarPos("MinRadius","Parameters")
     # MaxRadius= cv2.getTrackbarPos("MaxRadius","Parameters")
@@ -186,7 +186,7 @@ class Observer():
                         if(pred in [14,32,33,34,35]):
                             #print("Signal predicted: ",signs[pred])
                             last_signal = "Signal predicted: " + str(signs[pred])
-                            last_correct = "Last signal: " + str(signs[pred])
+                            last_correct = str(signs[pred])
                         else:
                             #print("Unknow signal")
                             last_signal = "Unknow signal"
@@ -197,7 +197,7 @@ class Observer():
                     #print("Not signal detected")
                     last_signal = "No signal detected"
                 
-                self.pred_pub.publish(last_signal)
+                self.pred_pub.publish(last_correct)
 
                 if cv2.waitKey(1) & 0xFF is ord('q'):
                     cv2.destroyAllWindows()
