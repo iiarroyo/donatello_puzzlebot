@@ -44,7 +44,7 @@ class Observer():
                 print("image is None")
                 continue
             line = self.detect_line()
-	    self.line_pub.publish(line)
+            self.line_pub.publish(line)
             if line is not None:
                 print("Line: ", abs(48-line))
                 if(abs(48-line)<10):
@@ -109,7 +109,7 @@ class Observer():
 
         # return np.average(peaks)
         if avg < 500:
-            return None
+            return -1
         # return avg
         return np.mean(np.where(col_sum > 1000))
 
