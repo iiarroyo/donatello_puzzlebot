@@ -6,7 +6,6 @@ from std_msgs.msg import Int32
 from std_msgs.msg import String
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
-import time
 
 # STATES
 STOP = 0
@@ -92,16 +91,18 @@ class Control():
             vel_forward.angular.z = 0
             self.cmd_vel_pub.publish(vel_forward)
 
-    def turn(self,degrees,cw=True):
+    def turn(self, rotation_goal,cw=True):
         x = 0
         theta = 0
         vel_forward = Twist()
-        while(theta<degrees):
+        e_theta = rotation_goal - theta
+        while(abs(e_theta)>0.05):
             v = self.r*(self.wr+self.wl)/2
             w = self.r*(self.wr-self.wl)/self.L
             x += v*self.Dt*np.cos(theta)
             theta += w*self.Dt
-            
+            e_theta = rotation_goal - theta
+
             vel_angular = 0.2 if cw else -0.2
             vel_forward.linear.x = 0
             vel_forward.angular.z = vel_angular
@@ -138,14 +139,14 @@ class Control():
             if(self.current_state == TURN_RIGHT):
                 print("Turning Right")
                 self.forward_move(15)
-                self.turn(90,cw = True)
+                self.turn(np.pi,cw = True)
                 self.forward_move(15)
                 self.current_state = FOLLOW_LINE
 
             if(self.current_state == TURN_LEFT):
                 print("Turning Left")
                 self.forward_move(15)
-                self.turn(90,cw = False)
+                self.turn(np.pi,cw = False)
                 self.forward_move(15)
                 self.current_state = FOLLOW_LINE
 
