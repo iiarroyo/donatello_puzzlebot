@@ -78,11 +78,11 @@ class Control():
 
     # -------------------   FUNCTIONS   ----------------------------------------
 
-    def forward_move(self):
+    def forward_move(self, dist):
         x = 0
         theta = 0
         vel_forward = Twist()
-        while(x<15):
+        while(x<dist):
             v = self.r*(self.wr+self.wl)/2
             w = self.r*(self.wr-self.wl)/self.L
             x += v*self.Dt*np.cos(theta)
