@@ -101,7 +101,7 @@ class Control():
             w = self.r*(self.wr-self.wl)/self.L
             x += v*self.Dt*np.cos(theta)
             theta += w*self.Dt
-            0
+            
             vel_angular = 0.2 if cw else -0.2
             vel_forward.linear.x = 0
             vel_forward.angular.z = vel_angular
