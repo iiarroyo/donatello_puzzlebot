@@ -9,9 +9,6 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 
 
-def empty(x):
-    pass
-
 # from the side
 redh_lower_side = 133
 reds_lower_side = 41
@@ -34,38 +31,6 @@ greenv_lower = 100
 greenh_upper = 93
 greens_upper = 255
 greenv_upper = 255
-
-
-# cv2.namedWindow("Parameters", cv2.WINDOW_NORMAL)
-# # cv2.resizeWindow("Parameters",640,240)
-
-# cv2.createTrackbar("redh_lower", "Parameters", 0, 500, empty)
-# cv2.createTrackbar("reds_lower", "Parameters", 0, 500, empty)
-# cv2.createTrackbar("redv_lower", "Parameters", 50, 500, empty)
-# cv2.createTrackbar("redh_upper", "Parameters", 20, 500, empty)
-# cv2.createTrackbar("reds_upper", "Parameters", 255, 500, empty)
-# cv2.createTrackbar("redv_upper", "Parameters", 255, 500, empty)
-
-# cv2.createTrackbar("greenh_lower", "Parameters", 0, 500, empty)
-# cv2.createTrackbar("greens_lower", "Parameters", 0, 500, empty)
-# cv2.createTrackbar("greenv_lower", "Parameters", 50, 500, empty)
-# cv2.createTrackbar("greenh_upper", "Parameters", 20, 500, empty)
-# cv2.createTrackbar("greens_upper", "Parameters", 255, 500, empty)
-# cv2.createTrackbar("greenv_upper", "Parameters", 255, 500, empty)
-
-# cv2.setTrackbarPos("redh_lower", "Parameters", redh_lower_side)
-# cv2.setTrackbarPos("reds_lower", "Parameters", reds_lower_side)
-# cv2.setTrackbarPos("redv_lower", "Parameters", redv_lower_side)
-# cv2.setTrackbarPos("redh_upper", "Parameters", redh_upper_side)
-# cv2.setTrackbarPos("reds_upper", "Parameters", reds_upper_side)
-# cv2.setTrackbarPos("redv_upper", "Parameters", redv_upper_side)
-
-# cv2.setTrackbarPos("greenh_lower", "Parameters", greenh_lower)
-# cv2.setTrackbarPos("greens_lower", "Parameters", greens_lower)
-# cv2.setTrackbarPos("greenv_lower", "Parameters", greenv_lower)
-# cv2.setTrackbarPos("greenh_upper", "Parameters", greenh_upper)
-# cv2.setTrackbarPos("greens_upper", "Parameters", greens_upper)
-# cv2.setTrackbarPos("greenv_upper", "Parameters", greenv_upper)
 
 
 class Observer():
@@ -107,12 +72,11 @@ class Observer():
             r.sleep()
 
     def detect_color(self, show_img=False):
-        image = cv2.GaussianBlur(self.image, (3, 3), 0) #self.image.copy()
+        image = cv2.GaussianBlur(self.image, (3, 3), 0)  # self.image.copy()
         scale_percent = 50  # percent of original size
         width = int(image.shape[1] * scale_percent / 100)
         height = int(image.shape[0] * scale_percent / 100)
         dim = (width, height)
-
 
         # resize image
         resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
@@ -120,30 +84,11 @@ class Observer():
         # cropped = resized[int(height*0.10):, ...]
 
         hsv = cv2.cvtColor(resized, cv2.COLOR_BGR2HSV)
-        # hsv[...,2] = cv2.multiply(hsv[..., 2], 0.6)
-        # print(hsv.shape)
-
-        # redh_lower = cv2.getTrackbarPos("redh_lower", "Parameters")
-        # reds_lower = cv2.getTrackbarPos("reds_lower", "Parameters")
-        # redv_lower = cv2.getTrackbarPos("redv_lower", "Parameters")
-        # redh_upper = cv2.getTrackbarPos("redh_upper", "Parameters")
-        # reds_upper = cv2.getTrackbarPos("reds_upper", "Parameters")
-        # redv_upper = cv2.getTrackbarPos("redv_upper", "Parameters")
-
-        # greenh_lower = cv2.getTrackbarPos("greenh_lower", "Parameters")
-        # greens_lower = cv2.getTrackbarPos("greens_lower", "Parameters")
-        # greenv_lower = cv2.getTrackbarPos("greenv_lower", "Parameters")
-        # greenh_upper = cv2.getTrackbarPos("greenh_upper", "Parameters")
-        # greens_upper = cv2.getTrackbarPos("greens_upper", "Parameters")
-        # greenv_upper = cv2.getTrackbarPos("greenv_upper", "Parameters")
-
         # masks
         maskr_side = cv2.inRange(hsv, (redh_lower_side, reds_lower_side, redv_lower_side),
-                            (redh_upper_side, reds_upper_side, redv_upper_side))
-        # maskr_side = cv2.inRange(hsv, (redh_lower, reds_lower, redv_lower),
-        #                     (redh_upper, reds_upper, redv_upper))
+                                 (redh_upper_side, reds_upper_side, redv_upper_side))
         maskr_front = cv2.inRange(hsv, (redh_lower_front, reds_lower_front, redv_lower_front),
-                            (redh_upper_front, reds_upper_front, redv_upper_front))
+                                  (redh_upper_front, reds_upper_front, redv_upper_front))
         maskr = cv2.bitwise_or(maskr_front, maskr_side, mask=None)
         maskg = cv2.inRange(hsv, (greenh_lower, greens_lower, greenv_lower),
                             (greenh_upper, greens_upper, greenv_upper))  # green mask
@@ -157,24 +102,19 @@ class Observer():
         dilatedg = cv2.dilate(erodedg, kernel_d)
         dilatedr = cv2.dilate(erodedr, kernel_d)
 
-
-
         largest_arear = self.largest_area(dilatedr)
         largest_areag = self.largest_area(dilatedg)
-
-
-
         # self.p_img = dilatedr
-
-
         if largest_arear > 5.0:
             return "RED"
         elif largest_areag > 5.0:
             return "GREEN"
         else:
             return
+
     def largest_area(self, img):
-        cnts = cv2.findContours(img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+        cnts = cv2.findContours(
+            img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
         largestArea = 0
         for cnt in cnts:
             rect = cv2.minAreaRect(cnt)
