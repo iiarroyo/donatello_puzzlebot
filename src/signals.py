@@ -23,24 +23,24 @@ lower_blue = np.array([90,80,50])
 upper_blue = np.array([110,255,255])
 lower_red = np.array([0,50,50]) #example value
 upper_red = np.array([10,255,255]) #example value
-MinRadius=11
-MaxRadius=50
-Param1=28
-Param2=27
+MinRadius=10
+MaxRadius=21
+Param1=55
+Param2=18
 
 def empty(x):
     pass
 
-# cv2.namedWindow("Parameters")
-# cv2.resizeWindow("Parameters",640,240)
-# cv2.createTrackbar("MinRadius","Parameters",1,255,empty)
-# cv2.createTrackbar("MaxRadius","Parameters",1,255,empty)
-# cv2.createTrackbar("Param1","Parameters",10,200,empty)
-# cv2.createTrackbar("Param2","Parameters",1,100,empty)
-# cv2.setTrackbarPos("MinRadius","Parameters",MinRadius)
-# cv2.setTrackbarPos("MaxRadius","Parameters",MaxRadius)
-# cv2.setTrackbarPos("Param1","Parameters",Param1)
-# cv2.setTrackbarPos("Param2","Parameters",Param2)
+cv2.namedWindow("Parameters")
+cv2.resizeWindow("Parameters",640,240)
+cv2.createTrackbar("MinRadius","Parameters",1,255,empty)
+cv2.createTrackbar("MaxRadius","Parameters",1,255,empty)
+cv2.createTrackbar("Param1","Parameters",10,200,empty)
+cv2.createTrackbar("Param2","Parameters",1,100,empty)
+cv2.setTrackbarPos("MinRadius","Parameters",MinRadius)
+cv2.setTrackbarPos("MaxRadius","Parameters",MaxRadius)
+cv2.setTrackbarPos("Param1","Parameters",Param1)
+cv2.setTrackbarPos("Param2","Parameters",Param2)
 
 cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
 cv2.namedWindow("Cropped", cv2.WINDOW_NORMAL)
@@ -48,10 +48,10 @@ cv2.namedWindow("Cropped", cv2.WINDOW_NORMAL)
 def findTrafficSign(image,text_s,text_c):
     text_2 = "Last signal: " + text_c
     text = text_s
-    # MinRadius= cv2.getTrackbarPos("MinRadius","Parameters")
-    # MaxRadius= cv2.getTrackbarPos("MaxRadius","Parameters")
-    # Param1= cv2.getTrackbarPos("Param1","Parameters")
-    # Param2= cv2.getTrackbarPos("Param2","Parameters")
+    MinRadius= cv2.getTrackbarPos("MinRadius","Parameters")
+    MaxRadius= cv2.getTrackbarPos("MaxRadius","Parameters")
+    Param1= cv2.getTrackbarPos("Param1","Parameters")
+    Param2= cv2.getTrackbarPos("Param2","Parameters")
 
     box = None
     circles = None
@@ -89,7 +89,7 @@ def findTrafficSign(image,text_s,text_c):
     # define variables to hold values during loop
     largestArea = 0
     largestRect = None
-    min_area = 500
+    min_area = 750
     area = 0
     # only proceed if at least one contour was found
     if len(cnts) > 0:
