@@ -15,6 +15,7 @@ BACKWARD = 2
 TURN_LEFT = 3
 TURN_RIGHT = 4
 FOLLOW_LINE = 5
+RED_LIGHT = 6
 
 
 class Control():
@@ -29,7 +30,7 @@ class Control():
 
         rospy.Subscriber("/start", String, self.start_cb)
         rospy.Subscriber("/line", Int32, self.line_cb)
-        rospy.Subscriber("/color", String, self.color_cb)
+        rospy.Subscriber("/detected_color", String, self.color_cb)
         rospy.Subscriber("/sign", String, self.sign_cb)
         rospy.Subscriber("/vel_line", Twist, self.vel_cb)
         rospy.Subscriber("wl", Float32, self.wl_cb)
@@ -125,21 +126,23 @@ class Control():
                 self.start_robot = "False"
             
             if(self.current_state == FOLLOW_LINE):
-                if(self.sign == "GoAhead" and self.line_idx == -1):
+                if(self.color == "RED" and self.line_idx == -1):
+                    self.current_state = RED_LIGHT
+                elif(self.sign == "Stop"):
+                    self.current_state = STOP
+                elif(self.sign == "GoAhead" and self.line_idx == -1):
                     self.current_state = FORWARD
                 elif(self.sign == "TurnRight" and self.line_idx == -1):
                     self.current_state = TURN_RIGHT
                 elif(self.sign == "TurnLeft" and self.line_idx == -1):
                     self.current_state = TURN_LEFT
-                elif(self.sign == "Stop" or self.color == "Red"):
-                    self.current_state = STOP
                 else:
                     if(self.LimitVel == True):
                         self.cmd_vel.linear.x = self.vel_line.linear.x*0.75
-                        self.cmd_vel.angular.z = self.vel_line.angular.z*0.75
+                        self.cmd_vel.angular.z = self.vel_line.angular.z
                     else:
                         self.cmd_vel.linear.x = self.vel_line.linear.x*1.50
-                        self.cmd_vel.angular.z = self.vel_line.angular.z*1.50
+                        self.cmd_vel.angular.z = self.vel_line.angular.z*1.1
                     self.cmd_vel_pub.publish(self.cmd_vel)
                     print("Following Line")
 
@@ -189,12 +192,21 @@ class Control():
                 self.current_state = FOLLOW_LINE
 
             if(self.current_state == STOP):
-                if(self.color != "Green"):
+                if(self.color != "GREEN"):
                     self.cmd_vel.linear.x = 0
                     self.cmd_vel.angular.z = 0
                     self.cmd_vel_pub.publish(self.cmd_vel)
-                    print("Stopped")
-                elif (self.color == "Green"):
+                    print("Stop Sign")
+                elif (self.color == "GREEN"):
+                    self.current_state = FOLLOW_LINE
+
+            if(self.current_state == RED_LIGHT):
+                if(self.color != "GREEN"):
+                    self.cmd_vel.linear.x = 0
+                    self.cmd_vel.angular.z = 0
+                    self.cmd_vel_pub.publish(self.cmd_vel)
+                    print("Red Light")
+                elif (self.color == "GREEN"):
                     self.current_state = FOLLOW_LINE
                 
             self.rate.sleep()  
