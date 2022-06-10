@@ -89,7 +89,7 @@ def findTrafficSign(image,text_s,text_c):
     # define variables to hold values during loop
     largestArea = 0
     largestRect = None
-    min_area = 500
+    min_area = 700
     area = 0
     # only proceed if at least one contour was found
     if len(cnts) > 0:

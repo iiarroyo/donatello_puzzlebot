@@ -46,12 +46,8 @@ class Observer():
             line = self.detect_line()
             self.line_pub.publish(line)
             if line is not None:
-                print("Line: ", abs(48-line))
-                if(abs(48-line)<10):
-                    cmd.linear.x = (0.125)
-                else:
-                    cmd.linear.x = (0.05)
-
+                print("Line: ", abs(48-line), "flag:", line)
+                cmd.linear.x = 0.085
                 cmd.angular.z = 0.003 * (48 - line)
                 print("angular", cmd.angular.z )
                 print("linear", cmd.linear.x)
