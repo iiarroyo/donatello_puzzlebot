@@ -12,9 +12,29 @@ from std_msgs.msg import Int32
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from matplotlib import cm, pyplot as plt
+# vesl 0.2
+# ki = 0.0015
+# kp = 0.0035
 
-ki = 0.01
-kp = 0.003
+# vel 0.25
+# ki = 0.001
+# kp = 0.005
+# kd = 0.0
+#vel 0.215
+# ki = 0.0015
+# kp = 0.0037
+# kd = 0.0
+
+ki = 0.0015
+kp = 0.0037
+kd = 0.0
+
+frec = 10.0  # frec var
+Ts = 1.0/frec
+
+K1 =kp + ki*Ts + kd/Ts
+K2 = -kp - 2.0*kd/Ts
+K3 = kd/Ts
 
 class Observer():
     def __init__(self):
@@ -25,21 +45,22 @@ class Observer():
             rospy.Subscriber("/camera/image_raw", Image, self.img_cb)
         else:
             rospy.Subscriber("/video_source/raw", Image, self.img_cb)
+        rospy.on_shutdown(self.cleanup)
 
         self.image = None  # subscriber image
         self.p_img = np.zeros((0, 0))  # processed image
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
         # image publisher
         self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
-        self.cmd_pub = rospy.Publisher("vel_line", Twist, queue_size=10)
+        self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
         self.line_pub = rospy.Publisher("line", Int32, queue_size=10)
         # self.detected_color_pub = rospy.Publisher("detected_color", String, queue_size=10)
 
-        frec = 10  # frec var
         r = rospy.Rate(frec)  # Hz
         print("Node initialized {0}Hz".format(frec))
         cmd = Twist()
         e = [0.0, 0.0, 0.0]  # error list
+        u = [0.0, 0.0]
         while not rospy.is_shutdown():
             if self.image is None:
                 print("image is None")
@@ -47,14 +68,12 @@ class Observer():
             line = self.detect_line()
             self.line_pub.publish(line)
             if line is not None:
-                print("Line: ", abs(48-line))
-                if(abs(48-line) < 10):
-                    cmd.linear.x = (0.125)
-                else:
-                    cmd.linear.x = (0.05)
+                cmd.linear.x = 0.215
                 e.insert(0, 48 - line)
                 e.pop()
-                cmd.angular.z = kp * e[0] + ki * e[2]
+                u[0] = K1*e[0] + K2*e[1] + K3*e[2] + u[1]
+                cmd.angular.z = u[0]
+                u[1] = u[0]
 
                 # print("angular", cmd.angular.z)
                 # print("linear", cmd.linear.x)
@@ -82,7 +101,7 @@ class Observer():
         gray_resized = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         gray_resized_blur = cv2.GaussianBlur(gray_resized, (7, 7), 0)
         cropped = gray_resized_blur[int(
-            img_height*0.70):, int(img_width*0.35):-int(img_width*0.35)]
+            img_height*0.70):, int(img_width*0.30):-int(img_width*0.30)]
         # print(cropped.shape)
         ret, thresh = cv2.threshold(cropped, 100, 255, cv2.THRESH_BINARY)
         # print(type(thresh))
