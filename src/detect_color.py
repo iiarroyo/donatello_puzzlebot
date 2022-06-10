@@ -45,7 +45,7 @@ class Observer():
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
         # image publisher
         self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
-        self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
+        # self.cmd_pub = rospy.Publisher("cmd_vel_color", Twist, queue_size=10)
         self.detected_color_pub = rospy.Publisher(
             "detected_color", String, queue_size=10)
 
@@ -66,9 +66,9 @@ class Observer():
                     cmd.linear.x = 0.0
                 # self.cmd_pub.publish(cmd)
                 # img to ROS Image msg
-                # img_back = self.bridge.cv2_to_imgmsg(
-                #     self.p_img, encoding="passthrough")
-                # self.img_pub.publish(img_back)  # publish image
+                img_back = self.bridge.cv2_to_imgmsg(
+                    self.p_img, encoding="passthrough")
+                self.img_pub.publish(img_back)  # publish image
             r.sleep()
 
     def detect_color(self, show_img=False):
@@ -81,9 +81,9 @@ class Observer():
         # resize image
         resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
         # print(resized.shape)
-        # cropped = resized[int(height*0.10):, ...]
+        cropped = resized[int(height*0.15):, ...]
 
-        hsv = cv2.cvtColor(resized, cv2.COLOR_BGR2HSV)
+        hsv = cv2.cvtColor(cropped , cv2.COLOR_BGR2HSV)
         # masks
         maskr_side = cv2.inRange(hsv, (redh_lower_side, reds_lower_side, redv_lower_side),
                                  (redh_upper_side, reds_upper_side, redv_upper_side))
@@ -103,9 +103,10 @@ class Observer():
         dilatedr = cv2.dilate(erodedr, kernel_d)
 
         largest_arear = self.largest_area(dilatedr)
+        print("largest_arear: {0}".format(largest_arear))
         largest_areag = self.largest_area(dilatedg)
-        # self.p_img = dilatedr
-        if largest_arear > 5.0:
+        self.p_img = maskr
+        if largest_arear > 5.0 and largest_arear < 60.0:
             return "RED"
         elif largest_areag > 5.0:
             return "GREEN"
