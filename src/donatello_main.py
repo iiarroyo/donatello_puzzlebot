@@ -138,11 +138,11 @@ class Control():
                     self.current_state = TURN_LEFT
                 else:
                     if(self.LimitVel == True):
-                        self.cmd_vel.linear.x = self.vel_line.linear.x*0.75
+                        self.cmd_vel.linear.x = self.vel_line.linear.x*0.7
                         self.cmd_vel.angular.z = self.vel_line.angular.z
                     else:
-                        self.cmd_vel.linear.x = self.vel_line.linear.x*1.50
-                        self.cmd_vel.angular.z = self.vel_line.angular.z*1.1
+                        self.cmd_vel.linear.x = self.vel_line.linear.x
+                        self.cmd_vel.angular.z = self.vel_line.angular.z
                     self.cmd_vel_pub.publish(self.cmd_vel)
                     print("Following Line")
 
