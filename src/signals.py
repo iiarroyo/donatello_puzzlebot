@@ -27,7 +27,7 @@ MinRadius=11
 MaxRadius=35
 Param1=28
 Param2=27
-min_area = 500
+min_area = 700
 min_area_stop = 700
 def empty(x):
     pass

@@ -124,7 +124,7 @@ class Control():
         while not rospy.is_shutdown():
             
             self.curr_sign = self.sign
-            print(self.curr_sign)
+            # print(self.curr_sign)
 
             if(self.curr_sign == "NoLimitVel"):
                 self.LimitVel = False
