@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+from turtle import right
 import cv2
 import rospy
 import platform
@@ -9,6 +10,7 @@ from numpy import dtype
 from std_srvs.srv import Empty
 from std_msgs.msg import String
 from std_msgs.msg import Int32
+from std_msgs.msg import Bool
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 from matplotlib import cm, pyplot as plt
@@ -20,7 +22,7 @@ from matplotlib import cm, pyplot as plt
 # ki = 0.001
 # kp = 0.005
 # kd = 0.0
-#vel 0.215
+# vel 0.215
 # ki = 0.0015
 # kp = 0.0037
 # kd = 0.0
@@ -35,6 +37,7 @@ Ts = 1.0/float(frec)
 K1 = kp + ki*Ts + kd/Ts
 K2 = -kp - 2.0*kd/Ts
 K3 = kd/Ts
+
 
 class Observer():
     def __init__(self):
@@ -56,44 +59,42 @@ class Observer():
         self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
         self.cmd_pub = rospy.Publisher("vel_line", Twist, queue_size=10)
         self.line_pub = rospy.Publisher("line", Int32, queue_size=10)
-        
+        self.flag_pub = rospy.Publisher("line_detected", Bool, queue_size=10)
+
         # self.detected_color_pub = rospy.Publisher("detected_color", String, queue_size=10)
 
         r = rospy.Rate(frec)  # Hz
         print("Node initialized {0}Hz".format(frec))
         cmd = Twist()
-        self.e = [0.0, 0.0, 0.0]  # error list
-        self.u = [0.0, 0.0]
+        e = [0.0, 0.0, 0.0]  # error list
+        u = [0.0, 0.0]
+        line = 48
         while not rospy.is_shutdown():
             if self.image is None:
                 print("image is None")
                 continue
             line = self.detect_line()
-            self.line_pub.publish(line)
             if line is not None:
-                #cmd.linear.x = 0.215
-                cmd.linear.x = 0.085
-                
-                #e.insert(0, 48 - line)
-                #e.pop()
-                #self.e[0] = 48-line
-                #self.u[0] = K1*self.e[0] + K2*self.e[1] + K3*self.e[2] + self.u[1]
-                
-                #self.u[0] = min(0.288,self.u[0])
-                #self.u[0] = max(-0.288, self.u[0])
-                #cmd.angular.z = self.u[0]
-                cmd.angular.z = 0.003*(48-line)
-                #self.e[2] = self.e[1]
-                #self.e[1] = self.e[0]
-                #self.u[1] = self.u[0]
+                self.flag_pub.publish(True)
+                self.line_pub.publish(line)
+                print("idx: {0}".format(line))
+                # cmd.linear.x = 0.085
+                # e.insert(0, 48 - line)
+                # e.pop()
+                # u[0] = K1*e[0] + K2*e[1] + K3*e[2] + u[1]
+                # cmd.angular.z = u[0]
+                # u[1] = u[0]
 
-                print("angular", cmd.angular.z)
-                print("linear", cmd.linear.x)
+                # print("angular", cmd.angular.z)
+                # print("linear", cmd.linear.x)
 
             else:
-                cmd.linear.x = 0.0
-                cmd.angular.z = 0.0
-            self.cmd_pub.publish(cmd)
+                # cmd.linear.x = 0.0
+                # cmd.angular.z = 0.0
+                print("NO LINE DETECTED")
+                self.flag_pub.publish(False)
+            # print("idx: {0}".format(line))
+            # self.cmd_pub.publish(cmd)
             # img to ROS Image msg
             if self.p_img is not None:
                 img_back = self.bridge.cv2_to_imgmsg(
@@ -114,22 +115,25 @@ class Observer():
         gray_resized_blur = cv2.GaussianBlur(gray_resized, (7, 7), 0)
         cropped = gray_resized_blur[int(
             img_height*0.70):, int(img_width*0.35):-int(img_width*0.35)]
-        # print(cropped.shape)
+        # cropped = gray_resized_blur[int(img_height*0.70):, :]
         ret, thresh = cv2.threshold(cropped, 100, 255, cv2.THRESH_BINARY)
-        # print(type(thresh))
         kernel = np.ones((6, 6), np.uint8)
         eroded = cv2.erode(~thresh, kernel)
         col_sum = np.sum(eroded, axis=0, dtype="int64")
-        col_sum_l = col_sum[:int(len(col_sum)*0.5)]
-        col_sum_r = col_sum[int(len(col_sum)*0.5):]
-        # print(sum(col_sum_l))
-        # print(sum(col_sum_r))
-        dif = sum(col_sum_l)-sum(col_sum_r)
-        # print("dif", dif)
+        avg = np.mean(col_sum)
+
+        left = eroded[:, :int(img_width*0.35)]
+        right = eroded[:, -int(img_width*0.35):]
+
+        left_sum = np.sum(left)
+        right_sum = np.sum(right)
+        # print("{0} {1}".format(left_sum, right_sum))
+        # col_sum_l = col_sum[:int(len(col_sum)*0.5)]
+        # col_sum_r = col_sum[int(len(col_sum)*0.5):]
+        # dif = sum(col_sum_l)-sum(col_sum_r)
 
         self.p_img = eroded  # processed image
 
-        avg = np.mean(col_sum)
         #print("avg", avg)
 
         # if plot:
@@ -142,10 +146,19 @@ class Observer():
         # plt.show()
 
         # return np.average(peaks)
-        if avg < 500:
-            return -1
+        upper_pic_sum = np.sum(eroded[:int(img_height*0.50), :])
+        lower_pic_sum = np.sum(eroded[int(img_height*0.50):, :])
+
+        if avg < 400:
+            return None
         # return avg
-        return np.mean(np.where(col_sum > 1000))
+        idx = np.mean(np.where(col_sum > 1000))
+        if idx < img_width//2:
+            left = True
+        elif idx > img_width//2:
+            left = False
+
+        return idx
 
     def group_cols(self, arr, win_size):
         for i in range(0, len(arr)//win_size, win_size):
