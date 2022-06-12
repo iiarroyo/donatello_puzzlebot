@@ -31,8 +31,8 @@ ki = 0.0015
 kp = 0.0037
 kd = 0.0
 
-frec = 10.0  # frec var
-Ts = 1.0/frec
+frec = 20  # frec var
+Ts = 1.0/float(frec)
 
 K1 = kp + ki*Ts + kd/Ts
 K2 = -kp - 2.0*kd/Ts
@@ -50,12 +50,14 @@ class Observer():
             rospy.Subscriber("/video_source/raw", Image, self.img_cb)
         rospy.on_shutdown(self.cleanup)
 
+        rospy.Subscriber("error_flag", String, self.error_flag_cb)
+
         self.image = None  # subscriber image
         self.p_img = np.zeros((0, 0))  # processed image
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
         # image publisher
         self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
-        self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
+        self.cmd_pub = rospy.Publisher("vel_line", Twist, queue_size=10)
         self.line_pub = rospy.Publisher("line", Int32, queue_size=10)
         self.flag_pub = rospy.Publisher("line_detected", Bool, queue_size=10)
 
@@ -170,6 +172,10 @@ class Observer():
     def img_cb(self, msg):
         self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         return
+
+    def error_flag_cb(self,msg):
+        self.e = [0.0, 0.0, 0.0]  # error list
+        self.u = [0.0, 0.0]
 
     def cleanup(self):
         last_cmd = Twist()
