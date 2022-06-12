@@ -23,11 +23,12 @@ lower_blue = np.array([90,80,50])
 upper_blue = np.array([110,255,255])
 lower_red = np.array([0,50,50]) #example value
 upper_red = np.array([10,255,255]) #example value
-MinRadius=10
-MaxRadius=21
-Param1=55
-Param2=18
-
+MinRadius=11
+MaxRadius=35
+Param1=28
+Param2=27
+min_area = 500
+min_area_stop = 700
 def empty(x):
     pass
 
@@ -37,10 +38,13 @@ cv2.createTrackbar("MinRadius","Parameters",1,255,empty)
 cv2.createTrackbar("MaxRadius","Parameters",1,255,empty)
 cv2.createTrackbar("Param1","Parameters",10,200,empty)
 cv2.createTrackbar("Param2","Parameters",1,100,empty)
+cv2.createTrackbar("Min_area","Parameters",1,2000,empty)
+
 cv2.setTrackbarPos("MinRadius","Parameters",MinRadius)
 cv2.setTrackbarPos("MaxRadius","Parameters",MaxRadius)
 cv2.setTrackbarPos("Param1","Parameters",Param1)
 cv2.setTrackbarPos("Param2","Parameters",Param2)
+cv2.setTrackbarPos("Min_area","Parameters",min_area)
 
 cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
 cv2.namedWindow("Cropped", cv2.WINDOW_NORMAL)
@@ -52,6 +56,7 @@ def findTrafficSign(image,text_s,text_c):
     MaxRadius= cv2.getTrackbarPos("MaxRadius","Parameters")
     Param1= cv2.getTrackbarPos("Param1","Parameters")
     Param2= cv2.getTrackbarPos("Param2","Parameters")
+    min_area = cv2.getTrackbarPos("Min_area","Parameters")
 
     box = None
     circles = None
@@ -65,9 +70,6 @@ def findTrafficSign(image,text_s,text_c):
     
     # convert color image to HSV color scheme
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)    
-    imgGray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-    imgGray=cv2.medianBlur(imgGray,5)
-    rows=imgGray.shape[0]
 
     # define kernel for smoothing   
     kernel = np.ones((3,3),np.uint8)
@@ -89,10 +91,10 @@ def findTrafficSign(image,text_s,text_c):
     # define variables to hold values during loop
     largestArea = 0
     largestRect = None
-    min_area = 750
     area = 0
     # only proceed if at least one contour was found
     if len(cnts) > 0:
+        cv2.putText(frame, "Signal Color: Blue",(10, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,255,0),2)
         for cnt in cnts:
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
@@ -108,6 +110,7 @@ def findTrafficSign(image,text_s,text_c):
                 largestRect = box
     
     if len(cnts_red)>0:
+        cv2.putText(frame, "Signal Color: Red",(10, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,255,0),2)
         for cnt in cnts_red:
             rect = cv2.minAreaRect(cnt)
             box = cv2.boxPoints(rect)
@@ -123,6 +126,10 @@ def findTrafficSign(image,text_s,text_c):
                 largestRect = box
 
     if area < min_area:
+        cv2.putText(frame, "Signal Shape: Circles",(10, 40),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,255,0),2)
+        imgGray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        imgGray=cv2.medianBlur(imgGray,5)
+        rows=imgGray.shape[0]
         circles=cv2.HoughCircles(imgGray,cv2.HOUGH_GRADIENT,1,rows/8,param1=Param1,
                                     param2=Param2,minRadius=MinRadius, maxRadius=MaxRadius)  
         if(circles is not None):
@@ -140,9 +147,11 @@ def findTrafficSign(image,text_s,text_c):
     if area>min_area:
         cv2.drawContours(frame,[largestRect],0,(0,0,255),2)
     
+    
     # show original image
     cv2.putText(frame, text,(10, 20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,255,0),2)
     cv2.putText(frame, text_2,(10, 150),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,255,0),2)
+    cv2.putText(frame, "Signal Area: "+str(area),(10, 70),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,255,0),2)
     cv2.imshow("Original", frame)   
     #print(area)
     if  area>min_area or circles is not None:
@@ -154,14 +163,14 @@ class Observer():
     def __init__(self):
         
         rospy.Subscriber("/video_source/raw", Image, self.img_cb)
-        self.pred_pub = rospy.Publisher("sign", String, queue_size=1)
+        self.pred_pub = rospy.Publisher("sign", String, queue_size=10)
         
         self.image = np.zeros((0, 0))  
         self.p_img = np.zeros((0, 0))  
         self.bridge = cv_bridge.CvBridge()
         last_signal = "No signal detected"
         last_correct = "Start"
-        frec = 10  
+        frec = 20  
         r = rospy.Rate(frec)  # Hz
         print("Node initialized {0}Hz".format(frec))
         while not rospy.is_shutdown():

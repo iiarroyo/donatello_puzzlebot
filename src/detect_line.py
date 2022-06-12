@@ -29,10 +29,10 @@ ki = 0.0015
 kp = 0.0037
 kd = 0.0
 
-frec = 10.0  # frec var
-Ts = 1.0/frec
+frec = 20  # frec var
+Ts = 1.0/float(frec)
 
-K1 =kp + ki*Ts + kd/Ts
+K1 = kp + ki*Ts + kd/Ts
 K2 = -kp - 2.0*kd/Ts
 K3 = kd/Ts
 
@@ -47,20 +47,23 @@ class Observer():
             rospy.Subscriber("/video_source/raw", Image, self.img_cb)
         rospy.on_shutdown(self.cleanup)
 
+        rospy.Subscriber("error_flag", String, self.error_flag_cb)
+
         self.image = None  # subscriber image
         self.p_img = np.zeros((0, 0))  # processed image
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
         # image publisher
         self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
-        self.cmd_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
+        self.cmd_pub = rospy.Publisher("vel_line", Twist, queue_size=10)
         self.line_pub = rospy.Publisher("line", Int32, queue_size=10)
+        
         # self.detected_color_pub = rospy.Publisher("detected_color", String, queue_size=10)
 
         r = rospy.Rate(frec)  # Hz
         print("Node initialized {0}Hz".format(frec))
         cmd = Twist()
-        e = [0.0, 0.0, 0.0]  # error list
-        u = [0.0, 0.0]
+        self.e = [0.0, 0.0, 0.0]  # error list
+        self.u = [0.0, 0.0]
         while not rospy.is_shutdown():
             if self.image is None:
                 print("image is None")
@@ -68,15 +71,24 @@ class Observer():
             line = self.detect_line()
             self.line_pub.publish(line)
             if line is not None:
-                cmd.linear.x = 0.215
-                e.insert(0, 48 - line)
-                e.pop()
-                u[0] = K1*e[0] + K2*e[1] + K3*e[2] + u[1]
-                cmd.angular.z = u[0]
-                u[1] = u[0]
+                #cmd.linear.x = 0.215
+                cmd.linear.x = 0.085
+                
+                #e.insert(0, 48 - line)
+                #e.pop()
+                #self.e[0] = 48-line
+                #self.u[0] = K1*self.e[0] + K2*self.e[1] + K3*self.e[2] + self.u[1]
+                
+                #self.u[0] = min(0.288,self.u[0])
+                #self.u[0] = max(-0.288, self.u[0])
+                #cmd.angular.z = self.u[0]
+                cmd.angular.z = 0.003*(48-line)
+                #self.e[2] = self.e[1]
+                #self.e[1] = self.e[0]
+                #self.u[1] = self.u[0]
 
-                # print("angular", cmd.angular.z)
-                # print("linear", cmd.linear.x)
+                print("angular", cmd.angular.z)
+                print("linear", cmd.linear.x)
 
             else:
                 cmd.linear.x = 0.0
@@ -101,7 +113,7 @@ class Observer():
         gray_resized = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         gray_resized_blur = cv2.GaussianBlur(gray_resized, (7, 7), 0)
         cropped = gray_resized_blur[int(
-            img_height*0.70):, int(img_width*0.30):-int(img_width*0.30)]
+            img_height*0.70):, int(img_width*0.35):-int(img_width*0.35)]
         # print(cropped.shape)
         ret, thresh = cv2.threshold(cropped, 100, 255, cv2.THRESH_BINARY)
         # print(type(thresh))
@@ -147,6 +159,10 @@ class Observer():
     def img_cb(self, msg):
         self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         return
+
+    def error_flag_cb(self,msg):
+        self.e = [0.0, 0.0, 0.0]  # error list
+        self.u = [0.0, 0.0]
 
     def cleanup(self):
         last_cmd = Twist()
