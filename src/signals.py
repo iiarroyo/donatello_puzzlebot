@@ -10,7 +10,7 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import String
 
 # Import model
-model = load_model(r"/home/mikelv21/puzzlebot_ws/src/twist_example/scripts/traffic_classifier.h5")
+model = load_model(r"/home/iiarroyo/catkin_ws/src/donatello_puzzlebot/traffic_classifier.h5")
 
 signs = {14:"Stop",
          32:"NoLimitVel",

@@ -74,7 +74,7 @@ class Observer():
             line = self.detect_line()
             if line is not None:
                 self.flag_pub.publish(True)
-                self.line_pub.publish(line)
+                self.line_pub.publish(np.nan_to_num(line))
                 print("idx: {0}".format(line))
                 # cmd.linear.x = 0.085
                 # e.insert(0, 48 - line)
