@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <!-- Launchfile for jetson -->
+    <!-- Node(s) -->
+    <include ns="donatello" file="$(find donatello_puzzlebot)/launch/listener_with_user_data.launch" />
+    <node pkg="donatello_puzzlebot" name="crop_jetson" type="crop_jetson.py" output="screen" />
+    <node pkg="donatello_puzzlebot" name="detect_color" type="detect_color.py" output="screen" />
+    <node pkg="donatello_puzzlebot" name="detect_line" type="detect_line.py" output="screen" />
+    <node pkg="donatello_puzzlebot" name="donatello_main" type="donatello_main.py" output="screen" />
+</launch>

@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 import rospy
 import numpy as np
@@ -22,7 +22,7 @@ RED_LIGHT = 6
 class Control():
     def __init__(self):
         rospy.on_shutdown(self.cleanup)
-        
+
     # ---------------------     PUBLISHERS       -----------------------------
 
         self.cmd_vel_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
@@ -36,7 +36,7 @@ class Control():
         rospy.Subscriber("/sign", String, self.sign_cb)
         # rospy.Subscriber("wl", Float32, self.wl_cb)
         # rospy.Subscriber("wr", Float32, self.wr_cb)
-        
+
     # ---------------------     CONSTANTS       ------------------------------
 
         self.line_idx = 48
@@ -50,26 +50,27 @@ class Control():
         self.cmd_vel = Twist()
         self.wl = 0.0
         self.wr = 0.0
-        self.r = 0.05                 
-        self.L = 0.18   
-        self.LimitVel = True              
+        self.r = 0.05
+        self.L = 0.18
+        self.LimitVel = True
         self.freq = 20
         self.rate = rospy.Rate(self.freq)  # 20Hz
         self.Dt = 1/float(self.freq)
 
     # ---------------------     CALLBACKS       -------------------------------
-    
+
     def start_cb(self, msg):
         self.start_robot = msg.data
 
     def line_det_cb(self, msg):
         self.line_detected = msg.data
-    
+
     def line_cb(self, msg):
         self.line_idx = msg.data
 
     def sign_cb(self, msg):
-        self.sign = msg.data
+        if not (self.current_state == TURN_RIGHT or self.current_state == TURN_LEFT or self.current_state == FORWARD):
+            self.sign = msg.data
 
     def color_cb(self, msg):
         self.color = msg.data
@@ -82,7 +83,6 @@ class Control():
 
     def wr_cb(self, msg):
         self.wr = msg.data
-
 
     # -------------------   FUNCTIONS   ----------------------------------------
 
@@ -117,37 +117,36 @@ class Control():
     #         vel_forward.angular.z = vel_angular
     #         self.cmd_vel_pub.publish(vel_forward)
 
-
     # ------------------- STATE MACHINE ----------------------------------------
 
     def main(self):
         while not rospy.is_shutdown():
-            
+
             self.curr_sign = self.sign
-            print(self.curr_sign)
+            # print(self.curr_sign)
 
             if(self.curr_sign == "NoLimitVel"):
                 self.LimitVel = False
-        
+
             if(self.start_robot == True):
                 self.current_state = FOLLOW_LINE
                 self.start_robot = False
-            
+
             if(self.current_state == FOLLOW_LINE):
                 if(self.color == "RED" and self.line_detected == False):
                     self.current_state = RED_LIGHT
                 elif(self.curr_sign == "Stop"):
-#                    self.sign = "None"
+                    #                    self.sign = "None"
                     self.current_state = STOP
                 elif(self.curr_sign == "GoAhead" and self.line_detected == False):
- #                   self.sign = "None"
+                 #                   self.sign = "None"
                     self.current_state = FORWARD
                 elif(self.curr_sign == "TurnRight" and self.line_detected == False):
-  #                  self.sign = "None"
+                  #                  self.sign = "None"
                     self.current_state = TURN_RIGHT
                 elif(self.curr_sign == "TurnLeft" and self.line_detected == False):
-   #
-   #                  self.sign = "None"
+                   #
+                   #                  self.sign = "None"
                     self.current_state = TURN_LEFT
                 else:
                     if(self.LimitVel == True):
@@ -171,18 +170,18 @@ class Control():
                 self.current_state = FOLLOW_LINE
 
             if(self.current_state == TURN_RIGHT):
-                print("Turning Right")               
-                #Enfrente
+                print("Turning Right")
+                # Enfrente
                 self.cmd_vel.linear.x = 0.1
                 self.cmd_vel.angular.z = 0.0
                 self.cmd_vel_pub.publish(self.cmd_vel)
                 time.sleep(2.8)
-                #Vuelta
+                # Vuelta
                 self.cmd_vel.linear.x = 0.0
                 self.cmd_vel.angular.z = -0.1
                 self.cmd_vel_pub.publish(self.cmd_vel)
                 time.sleep(3.3)
-                #Derecha
+                # Derecha
                 self.cmd_vel.linear.x = 0.1
                 self.cmd_vel.angular.z = 0
                 self.cmd_vel_pub.publish(self.cmd_vel)
@@ -192,6 +191,22 @@ class Control():
 
             if(self.current_state == TURN_LEFT):
                 print("Turning Left")
+                # Enfrente
+                self.cmd_vel.linear.x = 0.1
+                self.cmd_vel.angular.z = 0.0
+                self.cmd_vel_pub.publish(self.cmd_vel)
+                time.sleep(2.8)
+                # Vuelta
+                self.cmd_vel.linear.x = 0.0
+                self.cmd_vel.angular.z = 0.1
+                self.cmd_vel_pub.publish(self.cmd_vel)
+                time.sleep(3.3)
+                # Derecha
+                self.cmd_vel.linear.x = 0.1
+                self.cmd_vel.angular.z = 0
+                self.cmd_vel_pub.publish(self.cmd_vel)
+                time.sleep(2)
+                print("Turned left")
                 self.current_state = FOLLOW_LINE
 
             if(self.current_state == STOP):
@@ -211,8 +226,8 @@ class Control():
                     print("Red Light")
                 elif (self.color == "GREEN"):
                     self.current_state = FOLLOW_LINE
-                
-            self.rate.sleep()  
+
+            self.rate.sleep()
 
     def cleanup(self):
         self.cmd_vel.linear.x = 0
@@ -221,6 +236,7 @@ class Control():
 
 # ------------------- MAIN -----------------------------------------------
 
+
 if __name__ == '__main__':
     rospy.init_node('control_node', anonymous=True)
     rospy.loginfo("Control node initialized")
@@ -228,18 +244,9 @@ if __name__ == '__main__':
     control.main()
 
 
-
-
-
-
-
-
-
-
-
 # --------- borradores
 
-        # def execute(self):
+    # def execute(self):
     #     if self.state == STOP:
     #         self.stop()
     #     elif self.state == FORWARD:
@@ -255,8 +262,7 @@ if __name__ == '__main__':
     #     else:
     #         self.stop()
 
-
-     # def go_forward(self):
+    # def go_forward(self):
     #     self.x, self.y, self.theta = 0.0, 0.0, 0.0
     #     while self.state == FORWARD:
     #         cmd = self.goto_pos(0.10, 0.0)
@@ -303,15 +309,14 @@ if __name__ == '__main__':
     # def wr_cb(self, msg):
     #     self.wr = msg.data
 
-        
-        #self.cmd_vel = Twist()
-        #self.kv = 0.1
-        #self.kw = 0.1
-        #self.r = 0.05                 # wheel radius [m]
-        #self.L = 0.18                 # wheel separation [m]
+    #self.cmd_vel = Twist()
+    #self.kv = 0.1
+    #self.kw = 0.1
+    # self.r = 0.05                 # wheel radius [m]
+    # self.L = 0.18                 # wheel separation [m]
 
-        #self.linear_velocity = 0.1
-        #self.angular_velocity = 0.1
+    #self.linear_velocity = 0.1
+    #self.angular_velocity = 0.1
 
-        #rospy.Subscriber("wl", Float32, self.wl_cb)
-        #rospy.Subscriber("wr", Float32, self.wr_cb)
+    #rospy.Subscriber("wl", Float32, self.wl_cb)
+    #rospy.Subscriber("wr", Float32, self.wr_cb)

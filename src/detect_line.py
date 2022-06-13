@@ -56,7 +56,8 @@ class Observer():
         self.p_img = np.zeros((0, 0))  # processed image
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
         # image publisher
-        self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
+        self.img_pub = rospy.Publisher(
+            "filtered_img_line", Image, queue_size=10)
         self.cmd_pub = rospy.Publisher("vel_line", Twist, queue_size=10)
         self.line_pub = rospy.Publisher("line", Int32, queue_size=10)
         self.flag_pub = rospy.Publisher("line_detected", Bool, queue_size=10)
@@ -76,7 +77,7 @@ class Observer():
             line = self.detect_line()
             if line is not None:
                 self.flag_pub.publish(True)
-                self.line_pub.publish(line)
+                self.line_pub.publish(np.nan_to_num(line))
                 print("idx: {0}".format(line))
                 # cmd.linear.x = 0.085
                 # e.insert(0, 48 - line)
@@ -173,7 +174,7 @@ class Observer():
         self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
         return
 
-    def error_flag_cb(self,msg):
+    def error_flag_cb(self, msg):
         self.e = [0.0, 0.0, 0.0]  # error list
         self.u = [0.0, 0.0]
 
