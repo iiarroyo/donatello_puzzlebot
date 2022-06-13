@@ -6,6 +6,7 @@ from std_msgs.msg import Int32
 from std_msgs.msg import String
 from std_msgs.msg import Bool
 from sensor_msgs.msg import Image
+from geometry_msgs.msg import Twist
 import cv_bridge
 import cv2
 
@@ -23,119 +24,83 @@ class Visualization():
     # ---------------------     SUSCRIBERS       -----------------------------
 
         rospy.Subscriber("/line_detected", Bool, self.line_det_cb)
-        rospy.Subscriber("/start", Bool, self.start_cb)
         rospy.Subscriber("/line", Int32, self.line_cb)
+        rospy.Subscriber("/start", Bool, self.start_cb)
         rospy.Subscriber("/detected_color", String, self.color_cb)
         rospy.Subscriber("/sign", String, self.sign_cb)
-        rospy.Subscriber("/camera/image_raw", Image, self.img_cb)
+        rospy.Subscriber("cropped_image", Image, self.img_cb)
+        rospy.Subscriber("cmd_vel", Twist, self.vel_cb)
+        #rospy.Subscriber("current_state", String, self.state_cb)
 
     # ---------------------     CONSTANTS       ------------------------------
-
-#                                   #                                                            
-
-            #image
-
-#                                   #                                   
-# Cropped image  #  Robot data:
-#                #   Current State: 
-#                #   Last Signal:
-#                #   Traffic Light:
-#                #   Line state:    Idx:
-#                #   Linear:        Angular:   
-
-        self.line_idx = 48
-        self.line_detected = False
-        self.color = None
-        self.sign = "None"
+  
+        self.bridge = cv_bridge.CvBridge()
         self.start_robot = False
-        self.current_state = None
-        self.linear_vel = 0
-        self.angular_vel = 0
-        self.image = None  
-        self.crop = None
-        self.bridge = cv_bridge.CvBridge()  # cv_bridge
-
+        self.line_detected = False
+        self.line_idx = 48
+        self.color = "Unknow"
+        self.sign = "Waiting"
+        self.current_state = "Waiting"
+        self.vel = Twist()
+        self.image = np.zeros((0, 0))
         self.freq = 20
         self.rate = rospy.Rate(self.freq)  
         self.Dt = 1/float(self.freq)
 
-    #####
-
-        # white = [255,255,255]    
-        # img = np.ones((180,320,1))        
-
-        # crop = np.random.random((30, 30))
-        # crop = np.resize(crop,(30,30,1))
-        # title_crop = np.zeros((10,30,1))
-        # crop_w_title = np.concatenate((title_crop,crop), axis=0)
-
-        # data = np.zeros((30,290,1))
-        # title_data = np.random.random((10, 290,1))
-        # data_w_title = np.concatenate((title_data,data), axis=0)
-
-        # down_image = np.concatenate((crop_w_title,
-        #                              data_w_title), axis=1)
-
-        # self.full_image = np.concatenate((img, down_image), axis=0)
-        #self.full_image = cv2.copyMakeBorder(self.full_image,3,3,3,3,
-        #                                    cv2.BORDER_CONSTANT,value= white)
-
-        self.window = cv2.namedWindow("Donatello Visualizer",cv2.WINDOW_NORMAL)
-        
-
-    ####
-
-
     # ---------------------     CALLBACKS       -------------------------------
     
-    def start_cb(self, msg):
-        self.start_robot = msg.data
+    def line_det_cb(self, msg):
+        self.line_detected = msg
 
     def line_cb(self, msg):
         self.line_idx = msg.data
 
-    def sign_cb(self, msg):
-        self.sign = msg.data
+    def start_cb(self, msg):
+        self.start_robot = msg.data
 
     def color_cb(self, msg):
         self.color = msg.data
 
-    def line_det_cb(self, msg):
-        self.line_detected = msg
-
+    def sign_cb(self, msg):
+        self.sign = msg.data
+    
     def img_cb(self, msg):
         self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        self.image = cv2.resize(self.image,(320,180))
-        self.crop = self.image[0:30, 0:30].copy()
+
+    def vel_cb(self, msg):
+        self.vel = msg
+
+    #def state_cb(self,msg):
+    #    self.current_state = msg.data
 
     # ------------------- VISUALS ----------------------------------------
 
     def main(self):
         while not rospy.is_shutdown():
-            if(self.image is not None and self.image.shape[1] == 320):
-                im = self.image.copy()
-                title_crop = np.zeros((10,30,3))
-                crop_w_title = np.concatenate((title_crop,self.crop), axis=0)
-                title_data = np.random.random((10, 290,3))
-                data = np.zeros((30,290,3))
-                data_w_title = np.concatenate((title_data,data), axis=0)
+
+            image_copy = self.image.copy()
+            if(image_copy is not None and image_copy.size > 0):
+
+                if(self.start_robot == True):
+                    cv2.imshow("Cropped Image",image_copy)
+                    print("\n----------------\n")
+                    print("Current State: " )
+                    print("Last signal: ", self.sign)
+                    print("Traffic Light Color: ", self.color)
+                    print("is Line Detected? ", str(self.line_det_cb))
+                    print("Line idx: ", self.line_idx)
+                    print("Velocities: ", self.vel)
+                    print("\n----------------\n")
                 
-              
-                down_image = np.concatenate((crop_w_title,
-                                        data_w_title), axis=1)
+                else:
+                    print("Waiting for start signal...")
 
-                print(im.shape)
-                print(down_image.shape)
-
-                self.full_image = np.concatenate((self.image, down_image), axis=0)
-
-                cv2.imshow("Donatello Visualizer",self.full_image)
                 if cv2.waitKey(1) & 0xFF is ord('q'):
                     cv2.destroyAllWindows()
                     print("Stop programm and close all windows")
                     break
-            self.rate.sleep()  
 
+            self.rate.sleep()  
 
 # ------------------- MAIN -----------------------------------------------
 
@@ -144,5 +109,3 @@ if __name__ == '__main__':
     rospy.loginfo("Node initialized")
     visuals = Visualization()
     visuals.main()
-
-
