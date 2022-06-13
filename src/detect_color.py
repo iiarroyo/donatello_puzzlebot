@@ -44,7 +44,7 @@ class Observer():
         self.p_img = np.zeros((0, 0))  # processed image
         self.bridge = cv_bridge.CvBridge()  # cv_bridge
         # image publisher
-        self.img_pub = rospy.Publisher("filtered_img", Image, queue_size=10)
+        self.img_pub = rospy.Publisher("filtered_img_color", Image, queue_size=10)
         # self.cmd_pub = rospy.Publisher("cmd_vel_color", Twist, queue_size=10)
         self.detected_color_pub = rospy.Publisher(
             "detected_color", String, queue_size=10)
