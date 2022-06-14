@@ -65,7 +65,7 @@ class Visualization():
         self.sign = msg.data
     
     def img_cb(self, msg):
-        self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+        self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
 
     def vel_cb(self, msg):
         self.vel = msg

@@ -188,5 +188,6 @@ class Observer():
 
 
 if __name__ == "__main__":
+    print("holaholholhol")
     rospy.init_node("img_detector", anonymous=True)
     Observer()
