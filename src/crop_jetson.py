@@ -13,8 +13,8 @@ upper_red = np.array([10, 255, 255])  # example value
 MinRadius = 11
 MaxRadius = 20
 Param1 = 30
-Param2 = 30
-min_area = 500
+Param2 = 17
+min_area = 300
 
 # def empty(x):
 #    pass

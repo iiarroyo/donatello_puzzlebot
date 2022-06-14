@@ -30,7 +30,7 @@ class Visualization():
         rospy.Subscriber("/sign", String, self.sign_cb)
         rospy.Subscriber("cropped_image", Image, self.img_cb)
         rospy.Subscriber("cmd_vel", Twist, self.vel_cb)
-        #rospy.Subscriber("current_state", String, self.state_cb)
+        rospy.Subscriber("current_state", String, self.state_cb)
 
     # ---------------------     CONSTANTS       ------------------------------
   
@@ -50,7 +50,7 @@ class Visualization():
     # ---------------------     CALLBACKS       -------------------------------
     
     def line_det_cb(self, msg):
-        self.line_detected = msg
+        self.line_detected = msg.data
 
     def line_cb(self, msg):
         self.line_idx = msg.data
@@ -65,40 +65,37 @@ class Visualization():
         self.sign = msg.data
     
     def img_cb(self, msg):
-        self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
 
     def vel_cb(self, msg):
         self.vel = msg
 
-    #def state_cb(self,msg):
-    #    self.current_state = msg.data
+    def state_cb(self,msg):
+       self.current_state = msg.data
 
     # ------------------- VISUALS ----------------------------------------
 
     def main(self):
-        while not rospy.is_shutdown():
 
-            image_copy = self.image.copy()
-            if(image_copy is not None and image_copy.size > 0):
+        while not rospy.is_shutdown():  
 
+            if(self.image is not None):
                 if(self.start_robot == True):
-                    cv2.imshow("Cropped Image",image_copy)
-                    print("\n----------------\n")
-                    print("Current State: " )
-                    print("Last signal: ", self.sign)
-                    print("Traffic Light Color: ", self.color)
-                    print("is Line Detected? ", str(self.line_det_cb))
-                    print("Line idx: ", self.line_idx)
-                    print("Velocities: ", self.vel)
-                    print("\n----------------\n")
-                
+                    #cv2.imshow("Cropped Image",self.image)
+                    print("\n----------------\n")   
+                    print("Current State: {0}".format(self.current_state))
+                    print("Last signal: {0}".format(self.sign))
+                    print("Traffic Light Color: {0}".format(self.color))
+                    print("is Line Detected? {0}".format("YES" if self.line_detected else "NO"))
+                    print("Line idx: {0}".format(self.line_idx))
+                    print("Velocities: {0}".format(self.vel))
                 else:
                     print("Waiting for start signal...")
 
-                if cv2.waitKey(1) & 0xFF is ord('q'):
-                    cv2.destroyAllWindows()
-                    print("Stop programm and close all windows")
-                    break
+                # if cv2.waitKey(1) & 0xFF is ord('q'):
+                #     cv2.destroyAllWindows()
+                #     print("Stop programm and close all windows")
+                #     break
 
             self.rate.sleep()  
 

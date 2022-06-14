@@ -20,9 +20,9 @@ class Prediction():
         self.model = load_model(r"/home/iiarroyo/catkin_ws/src/donatello_puzzlebot/traffic_classifier.h5")
 
         rospy.Subscriber("cropped_image", Image, self.img_cb)
-        self.pred_pub = rospy.Publisher("sign", Image, queue_size=10)
+        self.pred_pub = rospy.Publisher("sign", String, queue_size=10)
 
-        self.image = Image()
+        self.image = np.zeros((0, 0))
         self.bridge = cv_bridge.CvBridge()
         self.last_correct = "Waiting"
         frec = 30
@@ -36,8 +36,10 @@ class Prediction():
                     resized = cv2.resize(image_copy, (30, 30))
                     pred = np.argmax(self.model.predict(resized.reshape(1, 30, 30, 3)))
                     if(pred in [14, 32, 33, 34, 35]):
-                        last_correct = str(self.signs[pred])
-                        self.pred_pub.publish(last_correct)
+                        self.last_correct = str(self.signs[pred])
+
+                        print(self.last_correct)
+                        self.pred_pub.publish(self.last_correct)
             r.sleep()
 
     def img_cb(self, msg):

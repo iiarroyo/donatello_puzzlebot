@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import rospy
 import cv2
-import numpy as np
-from imutils.perspective import four_point_transform
-import matplotlib.pyplot as plt
-from tensorflow.keras.models import load_model
 import cv_bridge
-from sensor_msgs.msg import Image
+import numpy as np
+import matplotlib.pyplot as plt
 from std_msgs.msg import String
+from sensor_msgs.msg import Image
+from tensorflow.keras.models import load_model
+from imutils.perspective import four_point_transform
 
 # Import model
 model = load_model(
