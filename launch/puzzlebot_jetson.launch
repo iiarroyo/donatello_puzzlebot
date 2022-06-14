@@ -2,9 +2,15 @@
 <launch>
     <!-- Launchfile for jetson -->
     <!-- Node(s) -->
-    <include ns="donatello" file="$(find donatello_puzzlebot)/launch/listener_with_user_data.launch" />
-    <node pkg="donatello_puzzlebot" name="crop_jetson" type="crop_jetson.py" output="screen" />
-    <node pkg="donatello_puzzlebot" name="detect_color" type="detect_color.py" output="screen" />
-    <node pkg="donatello_puzzlebot" name="detect_line" type="detect_line.py" output="screen" />
-    <node pkg="donatello_puzzlebot" name="donatello_main" type="donatello_main.py" output="screen" />
+    <include ns="donatello" file="$(find ros_deep_learning)/launch/video_viewer.ros1.launch">
+        <arg name="input_width" value="320" />
+        <arg name="input_height" value="180" />
+
+    </include>
+    <node pkg="donatello_puzzlebot" name="crop_jetson" type="crop_jetson.py" output="screen"/>
+    <node pkg="donatello_puzzlebot" name="detect_color" type="detect_color.py" output="screen"/>
+    <node pkg="donatello_puzzlebot" name="detect_line" type="detect_line.py" output="screen"/>
+    <node pkg="donatello_puzzlebot" name="donatello_main" type="donatello_main.py" output="screen"/>
 </launch>
+
+<!-- roslaunch ros_deep_learning video_viewer.ros1.launch input_width:=320 input_height:=180 -->
