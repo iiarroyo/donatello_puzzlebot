@@ -79,12 +79,16 @@ class Observer():
                 self.flag_pub.publish(True)
                 self.line_pub.publish(np.nan_to_num(line))
                 print("idx: {0}".format(line))
-                # cmd.linear.x = 0.085
-                # e.insert(0, 48 - line)
-                # e.pop()
-                # u[0] = K1*e[0] + K2*e[1] + K3*e[2] + u[1]
-                # cmd.angular.z = u[0]
-                # u[1] = u[0]
+                cmd.linear.x = 0.085
+                u[0] = K1*e[0] + K2*e[1] + K3*e[2] + u[1]
+                u[0] = min(u[0], 0.3)
+                u[0] = max(u[0], -0.3)
+                cmd.angular.z = u[0]
+                e[0] = 48 - line
+                e[2] = e[1]
+                e[1] = e[0]
+
+                u[1] = u[0]
 
                 # print("angular", cmd.angular.z)
                 # print("linear", cmd.linear.x)

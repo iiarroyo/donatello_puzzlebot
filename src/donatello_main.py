@@ -18,6 +18,16 @@ TURN_RIGHT = 4
 FOLLOW_LINE = 5
 RED_LIGHT = 6
 
+ki = 0.0015
+kp = 0.0037
+kd = 0.0
+
+_freq = 20  # frec var
+Ts = 1.0/float(_freq)
+
+K1 = kp + ki*Ts + kd/Ts
+K2 = -kp - 2.0*kd/Ts
+K3 = kd/Ts
 
 class Control():
     def __init__(self):
@@ -26,7 +36,8 @@ class Control():
     # ---------------------     PUBLISHERS       -----------------------------
 
         self.cmd_vel_pub = rospy.Publisher("cmd_vel", Twist, queue_size=10)
-        self.state_pub = rospy.Publisher("current_state", String, queue_size=10)
+        self.state_pub = rospy.Publisher(
+            "current_state", String, queue_size=10)
 
     # ---------------------     SUSCRIBERS       -----------------------------
 
@@ -57,6 +68,8 @@ class Control():
         self.freq = 20
         self.rate = rospy.Rate(self.freq)  # 20Hz
         self.Dt = 1/float(self.freq)
+        self.e = np.array([0.0, 0.0, 0.0])
+        self.u = np.array([0.0, 0.0])
 
     # ---------------------     CALLBACKS       -------------------------------
 
@@ -136,33 +149,47 @@ class Control():
             if(self.current_state == FOLLOW_LINE):
                 if(self.color == "RED" and self.line_detected == False):
                     self.current_state = RED_LIGHT
+                    self.e = np.array([0.0, 0.0, 0.0])
+                    self.u = np.array([0.0, 0.0])
+
                 elif(self.curr_sign == "Stop"):
                     #                    self.sign = "None"
                     self.current_state = STOP
+                    self.e = np.array([0.0, 0.0, 0.0])
+                    self.u = np.array([0.0, 0.0])
                 elif(self.curr_sign == "GoAhead" and self.line_detected == False):
                  #                   self.sign = "None"
                     self.current_state = FORWARD
+                    self.e = np.array([0.0, 0.0, 0.0])
+                    self.u = np.array([0.0, 0.0])
                 elif(self.curr_sign == "TurnRight" and self.line_detected == False):
                   #                  self.sign = "None"
                     self.current_state = TURN_RIGHT
+                    self.e = np.array([0.0, 0.0, 0.0])
+                    self.u = np.array([0.0, 0.0])
                 elif(self.curr_sign == "TurnLeft" and self.line_detected == False):
-                   #
-                   #                  self.sign = "None"
+                   #  self.sign = "None"
                     self.current_state = TURN_LEFT
+                    self.e = np.array([0.0, 0.0, 0.0])
+                    self.u = np.array([0.0, 0.0])
                 else:
+                    self.line = self.line_idx
+                    self.e[0] = 48 - self.line
+                    self.u[0] = K1*self.e[0] + K2*self.e[1] + K3*self.e[2] + self.u[1]
+                    self.u[0] = min(self.u[0], 0.3)
+                    self.u[0] = max(self.u[0], -0.3)
+                    self.cmd_vel.angular.z = self.u[0]
+                    self.e[2] = self.e[1]
+                    self.e[1] = self.e[0]
+                    self.u[1] = self.u[0]
                     if(self.LimitVel == True):
-                        self.line = self.line_idx
-                        self.cmd_vel.linear.x = 0.085 * 0.75
-                        self.cmd_vel.angular.z = 0.003*(48-self.line)
+                        self.cmd_vel.linear.x = 0.125
                     else:
-                        self.line = self.line_idx
-                        self.cmd_vel.linear.x = 0.085 * 1.50
-                        self.cmd_vel.angular.z = 0.003*(48-self.line)
+                        self.cmd_vel.linear.x = 0.2
                     self.cmd_vel_pub.publish(self.cmd_vel)
                     print("Following Line")
                     self.state_pub.publish("Following line")
 
-            
             if(self.current_state == FORWARD):
                 print("Going forward")
                 self.state_pub.publish("Going forward")
@@ -320,14 +347,14 @@ if __name__ == '__main__':
     # def wr_cb(self, msg):
     #     self.wr = msg.data
 
-    #self.cmd_vel = Twist()
-    #self.kv = 0.1
-    #self.kw = 0.1
+    # self.cmd_vel = Twist()
+    # self.kv = 0.1
+    # self.kw = 0.1
     # self.r = 0.05                 # wheel radius [m]
     # self.L = 0.18                 # wheel separation [m]
 
-    #self.linear_velocity = 0.1
-    #self.angular_velocity = 0.1
+    # self.linear_velocity = 0.1
+    # self.angular_velocity = 0.1
 
-    #rospy.Subscriber("wl", Float32, self.wl_cb)
-    #rospy.Subscriber("wr", Float32, self.wr_cb)
+    # rospy.Subscriber("wl", Float32, self.wl_cb)
+    # rospy.Subscriber("wr", Float32, self.wr_cb)
