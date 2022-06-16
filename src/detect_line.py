@@ -153,8 +153,9 @@ class Observer():
         # return np.average(peaks)
         upper_pic_sum = np.sum(eroded[:int(img_height*0.50), :])
         lower_pic_sum = np.sum(eroded[int(img_height*0.50):, :])
+        # print(eroded.shape)
 
-        if avg < 400:
+        if avg < 500:
             return None
         # return avg
         idx = np.mean(np.where(col_sum > 1000))

@@ -2,7 +2,7 @@
 <launch>
     <!-- Launchfile for jetson -->
     <!-- Node(s) -->
-    <node pkg="donatello_puzzlebot" name="signals" type="signals.py"/>
+    <node pkg="donatello_puzzlebot" name="tensor_node" type="tensor_node.py"/>
     <node pkg="donatello_puzzlebot" name="visualization" type="visualization.py" output="screen"/>
     
 </launch>

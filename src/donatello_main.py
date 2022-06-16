@@ -18,8 +18,8 @@ TURN_RIGHT = 4
 FOLLOW_LINE = 5
 RED_LIGHT = 6
 
-ki = 0.0015
-kp = 0.0037
+ki = 0.0013
+kp = 0.0035
 kd = 0.0
 
 _freq = 20  # frec var
@@ -70,6 +70,7 @@ class Control():
         self.Dt = 1/float(self.freq)
         self.e = np.array([0.0, 0.0, 0.0])
         self.u = np.array([0.0, 0.0])
+        # self.action_done = True
 
     # ---------------------     CALLBACKS       -------------------------------
 
@@ -135,8 +136,8 @@ class Control():
 
     def main(self):
         while not rospy.is_shutdown():
-
-            self.curr_sign = self.sign
+            if self.sign != "NONE":
+                self.curr_sign = self.sign
             # print(self.curr_sign)
 
             if(self.curr_sign == "NoLimitVel"):
@@ -183,9 +184,9 @@ class Control():
                     self.e[1] = self.e[0]
                     self.u[1] = self.u[0]
                     if(self.LimitVel == True):
-                        self.cmd_vel.linear.x = 0.125
+                        self.cmd_vel.linear.x = 0.075
                     else:
-                        self.cmd_vel.linear.x = 0.2
+                        self.cmd_vel.linear.x = 0.15
                     self.cmd_vel_pub.publish(self.cmd_vel)
                     print("Following Line")
                     self.state_pub.publish("Following line")
@@ -201,6 +202,7 @@ class Control():
                 print("Went forward")
                 self.state_pub.publish("Went forward")
                 self.current_state = FOLLOW_LINE
+                self.curr_sign = "NONE"
 
             if(self.current_state == TURN_RIGHT):
                 print("Turning Right")
@@ -209,7 +211,7 @@ class Control():
                 self.cmd_vel.linear.x = 0.1
                 self.cmd_vel.angular.z = 0.0
                 self.cmd_vel_pub.publish(self.cmd_vel)
-                time.sleep(2.8)
+                time.sleep(2.6)
                 # Vuelta
                 self.cmd_vel.linear.x = 0.0
                 self.cmd_vel.angular.z = -0.1
@@ -223,6 +225,7 @@ class Control():
                 print("Turned right")
                 self.state_pub.publish("Turned right")
                 self.current_state = FOLLOW_LINE
+                self.curr_sign = "NONE"
 
             if(self.current_state == TURN_LEFT):
                 print("Turning Left")
@@ -245,6 +248,7 @@ class Control():
                 print("Turned left")
                 self.state_pub.publish("Turned left")
                 self.current_state = FOLLOW_LINE
+                self.curr_sign = "NONE"
 
             if(self.current_state == STOP):
                 if(self.color != "GREEN"):

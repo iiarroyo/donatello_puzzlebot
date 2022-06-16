@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import rospy
+import time
 import cv2
 import numpy as np
 from tensorflow.keras.models import load_model
@@ -37,9 +38,15 @@ class Prediction():
                     pred = np.argmax(self.model.predict(resized.reshape(1, 30, 30, 3)))
                     if(pred in [14, 32, 33, 34, 35]):
                         self.last_correct = str(self.signs[pred])
-
                         print(self.last_correct)
                         self.pred_pub.publish(self.last_correct)
+                    else:
+                        self.pred_pub.publish("NONE")
+                else:
+                    self.pred_pub.publish("NONE")
+            else:
+               self.pred_pub.publish("NONE")
+
             r.sleep()
 
     def img_cb(self, msg):

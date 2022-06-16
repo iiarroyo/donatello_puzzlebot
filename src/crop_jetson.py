@@ -4,6 +4,8 @@ import cv2
 import numpy as np
 import cv_bridge
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
+
 
 # Define range HSV for blue color of the traffic sign
 lower_blue = np.array([90, 80, 50])
@@ -12,12 +14,12 @@ lower_red = np.array([0, 50, 50])  # example value
 upper_red = np.array([10, 255, 255])  # example value
 MinRadius = 11
 MaxRadius = 20
-Param1 = 30
-Param2 = 17
-min_area = 300
+Param1 = 34
+Param2 = 22
+min_area = 207
 
-# def empty(x):
-#    pass
+def empty(x):
+   pass
 # cv2.namedWindow("Parameters")
 # cv2.resizeWindow("Parameters",640,240)
 # cv2.createTrackbar("MinRadius","Parameters",1,255,empty)
@@ -32,19 +34,17 @@ min_area = 300
 # cv2.setTrackbarPos("Param2","Parameters",Param2)
 # cv2.setTrackbarPos("Min_area","Parameters",min_area)
 
-# cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
-# cv2.namedWindow("Cropped", cv2.WINDOW_NORMAL)
+#cv2.namedWindow("Original", cv2.WINDOW_NORMAL)
+#cv2.namedWindow("Cropped", cv2.WINDOW_NORMAL)
 
 
 def findTrafficSign(image):
-    # text_2 = "Last signal: " + text_c
-    # text = text_s
     # MinRadius= cv2.getTrackbarPos("MinRadius","Parameters")
     # MaxRadius= cv2.getTrackbarPos("MaxRadius","Parameters")
     # Param1= cv2.getTrackbarPos("Param1","Parameters")
     # Param2= cv2.getTrackbarPos("Param2","Parameters")
     # min_area = cv2.getTrackbarPos("Min_area","Parameters")
-
+    # cv2.waitKey(1)
     box = None
     circles = None
     frame = image.copy()
@@ -133,13 +133,14 @@ class CropJetson():
 
         rospy.Subscriber("/video_source/raw", Image, self.img_cb)
         self.crop_pub = rospy.Publisher("cropped_image", Image, queue_size=10)
+        self.pred_pub = rospy.Publisher("sign", String, queue_size=10)
 
         self.image = np.zeros((0, 0))
         self.cropped_img = np.zeros((0, 0))
         self.bridge = cv_bridge.CvBridge()
         self.img_back = Image()
 
-        frec = 30
+        frec = 15
         r = rospy.Rate(frec)  # Hz
         print("Node initialized {0}Hz".format(frec))
         while not rospy.is_shutdown():
@@ -162,6 +163,9 @@ class CropJetson():
                         self.img_back = self.bridge.cv2_to_imgmsg(
                             cropped_im, encoding="passthrough")
                         self.crop_pub.publish(self.img_back)
+                    # else:
+                    #     self.pred_pub.publish("NONE")
+
             r.sleep()
 
     def img_cb(self, msg):

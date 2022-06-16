@@ -5,7 +5,7 @@
     <node pkg="donatello_puzzlebot" name="detect_line" type="detect_line.py"/>
     <node pkg="donatello_puzzlebot" name="crop_jetson" type="crop_jetson.py"/>
     <node pkg="donatello_puzzlebot" name="detect_color" type="detect_color.py" />
-    <node pkg="donatello_puzzlebot" name="donatello_main" type="donatello_main.py"/>
+    <node pkg="donatello_puzzlebot" name="donatello_main" type="donatello_main.py" output="screen"/>
 
     <!-- <include ns="donatello" file="$(find ros_deep_learning)/launch/video_viewer.ros1.launch" args="input_width:=320 input_height:=180"> -->
         <!-- <arg name="input_width" value="320" />
